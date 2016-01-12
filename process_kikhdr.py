@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as md
 from scipy import signal as sg
 from sys import argv
-from obspy import UTCDateTime
+#from obspy import UTCDateTime
 import datetime as dt
 import time
 ###############################################################################
