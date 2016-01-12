@@ -16,11 +16,11 @@ import datetime as dt
 import time
 ###############################################################################
 # GIVE VARIABLE NAME TO ARGUMENT VALUES
-script, header, fdip, Mag = argv
+#script, header, fdip, Mag = argv
 ###############################################################################
 #COUNT THE NUMBER OF LINES IN INPUT FILE
-with open(header) as f:
-        fname = f.name
+#with open(header) as f:
+        #fname = f.name
 ###############################################################################
 #SECTION TO LOAD INTO PYTHON AND DESCRIBE CONTENTS OF INPUT HEADER FILE
 # h[0:1:2] = date of quake (YYYY:MM:DD), h[2:4:5] = time of quake (HR:MIN:SEC) ...
@@ -31,7 +31,7 @@ with open(header) as f:
 # h[20] = duration time (s) h[21] = scaling factor numerator (gal), 
 # h[22] = scaling factor denominator (gal), h[23] = max acc (gal) 
 
-h = np.loadtxt(header) 
+#h = np.loadtxt(header) 
 
 ##############################################################################
 #Calculate the difference in longitude and latitude and give the absolute value 
@@ -84,11 +84,11 @@ def W_Cempfaultparams(Mag, dip):
     
 
 #maximum acceleration (from header file / 100 to get to units of m/s/s)
-amax = h[23] / 100
+#amax = h[23] / 100
 #epicentral and hypocentral distances
-epid, hypd = hyper_epiD(h)
+#epid, hypd = hyper_epiD(h)
 #empirical fault parameters
-srl, rw, rwa, ra, sw, swa = W_Cempfaultparams(float(Mag), float(fdip))
+#srl, rw, rwa, ra, sw, swa = W_Cempfaultparams(float(Mag), float(fdip))
 
 
 #print "%r %r %r %r %r %r" % (h[10], h[11], h[12], amax, (epid / 1000), (hypd / 1000))
