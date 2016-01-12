@@ -2,7 +2,7 @@
 import numpy as np
 from glob import glob
 from sys import argv
-from process_kikhdr import W_Cempfaultparams, hyper_epid
+from process_kikhdr import W_Cempfaultparams, hyper_epiD
 import os.path
 
 
@@ -66,7 +66,7 @@ def grab_file_names(path_to_folder):
     
 
 def write_fname_to_file(fname1, fname2, fname3, fname4, fname5, fname6):
-    """ This function writes all of the file paths and names to a single file.  """
+    """ This function writes all of the file paths and names to a single file. """
     with open('filenames.txt', 'w') as fnames:   
         for f in fname1:
             fnames.write(f + '\n')
@@ -88,7 +88,7 @@ def make_db_files(fname):
     with open (argv[1] + argv[4], 'ab') as f:          
             
         h = np.loadtxt(fname)
-        EpiD, HypD = hyper_epid(h)
+        EpiD, HypD = hyper_epiD(h)
         
         dbfilearray = np.array([h[10], h[11], h[12], h[23]/100, EpiD/1000, HypD/1000])
         np.savetxt(f, dbfilearray)
