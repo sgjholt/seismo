@@ -91,10 +91,10 @@ epid, hypd = hyper_epiD(h)
 srl, rw, rwa, ra, sw, swa = W_Cempfaultparams(float(Mag), float(fdip))
 
 
-print "%r %r %r %r %r %r" % (h[10], h[11], h[12], amax, (epid / 1000), (hypd / 1000))
+#print "%r %r %r %r %r %r" % (h[10], h[11], h[12], amax, (epid / 1000), (hypd / 1000))
 
-b = np.array([h[6], h[7], h[8], srl, rw, rwa, ra, sw, swa])
-np.savetxt('quakeparams.txt', b, fmt='%10.5f', header="Quake lat(deg), Quake lon(deg), Quake Depth(km), Surface Length(km), Downdip Width(km) (with formula), Downdip W(km) (with area), Area(km^2), S width w/out area(km), S width with area(km)")
+#b = np.array([h[6], h[7], h[8], srl, rw, rwa, ra, sw, swa])
+#np.savetxt('quakeparams.txt', b, fmt='%10.5f', header="Quake lat(deg), Quake lon(deg), Quake Depth(km), Surface Length(km), Downdip Width(km) (with formula), Downdip W(km) (with area), Area(km^2), S width w/out area(km), S width with area(km)")
 
 
 
