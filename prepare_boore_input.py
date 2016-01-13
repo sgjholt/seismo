@@ -27,9 +27,13 @@ def main():
     path_to_folder = '/Users/jamesholt/Documents/MRes/20001006133000/20001006133000.kik/'
     
     
-    fileList= grab_file_names(path_to_folder)
+    fileList = grab_file_names(path_to_folder)
     for fname in fileList:
         make_db_files(fname)
+    
+    reshapeFile()
+    
+    saveEqParams(path_to_folder)
         
     write_fname_to_file(fileList)
     
@@ -70,9 +74,7 @@ def write_fname_to_file(fname):
        
 
 def make_db_files(fname):
-    dip = float(90.0)
-    mag = float(7.3)
- 
+    
     with open ('testes.txt', 'ab') as f:          
             
         h = np.loadtxt(fname)
@@ -81,13 +83,35 @@ def make_db_files(fname):
         dbfilearray = np.array([h[10], h[11], h[12], h[23]/100, EpiD/1000, HypD/1000])
         np.savetxt(f, dbfilearray)
     
-    reshapeFile()
+    
 
     
 def reshapeFile():
     
     dat = np.loadtxt('testes.txt')
     np.savetxt('testes.txt', dat.reshape(len(dat) / 6, 6))
+
+def saveEqParams(path_to_folder):
+    
+    with open('quake_params.txt', 'wb') as f:
+        List = grab_file_names(path_to_folder)
+    
+        dip = float(90.0)
+        mag = float(7.3)
+        SL, DDW, DDWA, RSA, SW, SWA  = W_Cempfaultparams(mag, dip)
+    
+    
+        h = np.loadtxt(List[0])
+        eqparams = np.array([h[6], h[7], h[8], SL, DDW, DDWA, RSA, SW, SWA])  
+            
+        header = "Quake lat(deg), Quake lon(deg), Quake Depth(km), Surface Length(km), Downdip Width(km) (with formula), Downdip W(km) (with area), Area(km^2), S width w/out area(km), S width with area(km)"         
+        np.savetxt(f, eqparams, fmt='%10.5f', header=header)
+
+
+
+
+        
+    
 
 #def check_if_exist(path_to_file, filename):
     #if os.path.isfile(path_to_file + filename) == False:
