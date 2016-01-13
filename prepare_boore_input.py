@@ -14,17 +14,14 @@ import os.path
 
 #filenames3 = glob('/Users/jamesholt/Documents/MRes/20001006133000/20001006133000.kik/*.UD1.h')
 #---------------
-#SL, DDW, DDWA, RSA, SW, SWA  = W_Cempfaultparams(dip, mag)
-#eqparams = np.array([h[6], h[7], h[8], srl, rw, rwa, ra, sw, swa])
-#---------------
-#np.savetxt('quakeparams.txt', eqparams, fmt='%10.5f', header="Quake lat(deg), Quake lon(deg), Quake Depth(km), Surface Length(km), Downdip Width(km) (with formula), Downdip W(km) (with area), Area(km^2), S width w/out area(km), S width with area(km)")
 
 # argv in in order of argv[0] = python script name, argv[1] = full folder path, 
 #... argv[2] is dip in degrees, argv[3] is the magnitude (Mw) and argv[4] 
 #... is the output file name.
 
 def main():
-    path_to_folder = '/Users/jamesholt/Documents/MRes/20001006133000/20001006133000.kik/'
+    path_to_folder = str(argv[1])   
+    #e.g. '/Users/jamesholt/Documents/MRes/20001006133000/20001006133000.kik/'
     
     
     fileList = grab_file_names(path_to_folder)
@@ -74,8 +71,9 @@ def write_fname_to_file(fname):
        
 
 def make_db_files(fname):
-    
-    with open ('testes.txt', 'ab') as f:          
+    """ This function will create a database from the kik-net headers by 
+        extracting stnlat h[10], stnlon h[11], stnheight h[12], max acceleration """
+    with open (str(argv[1]) + str(argv[4]), 'ab') as f:          
             
         h = np.loadtxt(fname)
         EpiD, HypD = hyper_epiD(h)
@@ -85,30 +83,29 @@ def make_db_files(fname):
     
     
 
-    
 def reshapeFile():
     
-    dat = np.loadtxt('testes.txt')
-    np.savetxt('testes.txt', dat.reshape(len(dat) / 6, 6))
+    dat = np.loadtxt(str(argv[1]) + str(argv[4]))
+    np.savetxt(str(argv[1]) + str(argv[4]), dat.reshape(len(dat) / 6, 6))
 
 def saveEqParams(path_to_folder):
     
-    with open('quake_params.txt', 'wb') as f:
-        List = grab_file_names(path_to_folder)
+    with open(path_to_folder + 'quake_params.txt', 'wb') as f:
+        
     
-        dip = float(90.0)
-        mag = float(7.3)
+        dip, mag = [float(argv[2]), float(argv[3])]
+        
         SL, DDW, DDWA, RSA, SW, SWA  = W_Cempfaultparams(mag, dip)
     
-    
+        List = grab_file_names(path_to_folder)
         h = np.loadtxt(List[0])
-        eqparams = np.array([h[6], h[7], h[8], SL, DDW, DDWA, RSA, SW, SWA])  
+        eqparams = np.array([h[6], h[7], h[8], dip, mag, SL, DDW, DDWA, RSA, SW, SWA])  
             
-        header = "Quake lat(deg), Quake lon(deg), Quake Depth(km), Surface Length(km), Downdip Width(km) (with formula), Downdip W(km) (with area), Area(km^2), S width w/out area(km), S width with area(km)"         
+        header = "Quake lat(deg), Quake lon(deg), Quake Depth(km), Quake Dip (deg), Quake Mag (Mw) Surface Length(km), Downdip Width(km) (with formula), Downdip W(km) (with area), Area(km^2), S width w/out area(km), S width with area(km)"         
         np.savetxt(f, eqparams, fmt='%10.5f', header=header)
 
 
-
+main()
 
         
     
