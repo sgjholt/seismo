@@ -5,6 +5,7 @@ from sys import argv
 from process_kikhdr import W_Cempfaultparams, hyper_epiD
 import os
 import stat
+import subprocess
 
 # argv in in order of argv[0] = python script name, argv[1] = full folder path, 
 #... argv[2] is dip in degrees, argv[3] is the magnitude (Mw), argv[4] is the 
@@ -14,6 +15,7 @@ import stat
 def main():
     fileList = grab_file_names(str(argv[1]))
     
+    subprocess.call(['rm', str(argv[1]) + str(argv[5])])    
     for fname in fileList:
         make_db_files(fname)
     reshapeFile()
@@ -23,6 +25,8 @@ def main():
     write_fname_to_file(fileList)
     
     booreFileMaker()
+    
+    runBoore()
     
     
     
@@ -60,6 +64,7 @@ def write_fname_to_file(fname):
 def make_db_files(fname):
     """ This function will create a database from the kik-net headers by 
         extracting stnlat h[10], stnlon h[11], stnheight h[12], max acceleration """
+      
     with open (str(argv[1]) + str(argv[5]), 'ab') as f:          
             
         h = np.loadtxt(fname)
@@ -78,7 +83,7 @@ def reshapeFile():
     np.savetxt(str(argv[1]) + str(argv[5]), dat.reshape(len(dat) / 6, 6))
 
 def saveEqParams(path_to_folder):
-    
+    subprocess.call(['rm', path_to_folder + 'quake_params.txt'])
     with open(path_to_folder + 'quake_params.txt', 'wb') as f:
         
     
@@ -95,30 +100,34 @@ def saveEqParams(path_to_folder):
 
 
 def booreFileMaker():
-    fname = str(argv[1]) + 'DIST_3D.CTL'
-    
+    #Define the strings to be used for removing, opening and writing to files.
+    fname = '/Users/jamesholt/seismograms/DIST_3D.CTL'
     writeString1 = "!Control file for program Dist_3D\n!Name of output file:\ndist_3d.out\n!Minimum Depth for Campbell:\n3.0\n!Number of Fault Planes:\n1\n!Fault orientation (ref lat,long,elev(m),depth, strike, dip, s1, s2, w1, w2):\n"
-
-
-    
     writeString2 = "!Lat,long, elev (m) of station, character string for output (can be blank):\n" 
-
+    #Remove the exisiting DIST_3D.CTL file.
+    subprocess.call(['rm', str(fname)])
+    #Begin making the DIST_3D.CTL file
     with open (fname, 'w') as f:
         f.write(writeString1)
-  
+    #Add the line which will define fault plane
+    #Meaning in order of list =  ref lat, lon, elev, depth, strike, dip, ...
+    #length of surface rupture left of reference lat, same but right, ...
+    #width of fault projected to the surface to left of reference, same but ...
+    #right.
+    
     with open (fname, 'ab') as f:
         F = np.loadtxt(str(argv[1]) + 'quake_params.txt', skiprows=1)
         boorelist = np.array(
-        [F[0], F[1], 0, F[2], F[3], F[5], F[6]/2, F[6]/2, F[11]/2, F[11]/2])
+        [F[0], F[1], 0, F[2], F[5], F[3], F[6]/2, F[6]/2, F[11]/2, F[11]/2])
         boorelist = boorelist.reshape(1, 10)
-        np.savetxt(f, boorelist)
+        np.savetxt(f, boorelist, fmt='%10.5f')
 
     with open (fname, 'a') as f:
         f.write(writeString2)  
     
     with open (fname, 'ab') as f:
         File = np.loadtxt(str(argv[1]) + str(argv[5]))
-        np.savetxt(f, File[:, [1,2,3]])
+        np.savetxt(f, File[:, [0,1,2]], fmt='%10.5f')
    
     with open (fname, 'a') as f:
         f.write('stop')
@@ -131,7 +140,10 @@ def make_executable(path):
     mode |= (mode & 292) >> 2
     os.chmod(path, mode)
 
-
+def runBoore():
+    path_to_exe = "/Users/jamesholt/Documents/dist_programs/DIST_3D.EXE"    
+    subprocess.call(["wine", path_to_exe])
+    
 
 main()
 
