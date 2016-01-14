@@ -28,6 +28,8 @@ def main():
     
     runBoore()
     
+    mergedatabase()
+    
     
     
         
@@ -56,7 +58,8 @@ def grab_file_names(path_to_folder):
 
 def write_fname_to_file(fname):
     """ This function writes all of the file paths and names to a single file. """
-    with open('filenames.txt', 'w') as fnames:   
+    subprocess.call(['rm', str(argv[1]) + 'filenames.txt'])
+    with open(str(argv[1]) + 'filenames.txt', 'w') as fnames:   
         for f in fname:
             fnames.write(f + '\n')
        
@@ -143,6 +146,23 @@ def make_executable(path):
 def runBoore():
     path_to_exe = "/Users/jamesholt/Documents/dist_programs/DIST_3D.EXE"    
     subprocess.call(["wine", path_to_exe])
+
+def loadOutFile():
+    path_to_outfile = "/Users/jamesholt/seismograms/dist_3d.out"
+    outfileDat = np.loadtxt(path_to_outfile, skiprows=13)
+    booredists = outfileDat[:, [4, 5, 6, 7]]
+    return booredists
+
+def mergedatabase():
+    subprocess.call = (['rm', str(argv[1]) + str(argv[5]) + '_complete.txt'])
+    with open (str(argv[1]) + str(argv[5]) + '_complete.txt', 'wb') as f:
+        maindb = np.loadtxt(str(argv[1]) + str(argv[5]))
+        boordb = loadOutFile()
+        whole = np.concatenate((maindb, boordb), axis = 1)
+        header = "Stn Lat (deg), Stn Lon (deg), Stn Height (m), max acc (m/s/s), epicentral dist (km), hypocentral dist (km), Rrup (km), Rcmpbl (km), Rjb (km), AZjb (deg)"
+        
+        np.savetxt(f, whole, fmt ='%10.5f', header = header)
+    
     
 
 main()
