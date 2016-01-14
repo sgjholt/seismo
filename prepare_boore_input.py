@@ -16,10 +16,9 @@ def main():
     
     for fname in fileList:
         make_db_files(fname)
-    
     reshapeFile()
     
-    saveEqParams(path_to_folder)
+    saveEqParams(str(argv[1]))
         
     write_fname_to_file(fileList)
     
@@ -109,7 +108,8 @@ def booreFileMaker():
   
     with open (fname, 'ab') as f:
         F = np.loadtxt(str(argv[1]) + 'quake_params.txt', skiprows=1)
-        boorelist = np.array([F[0], F[1], 0, F[2], F[3], F[5], F[6]/2, F[6]/2, F[11]/2, F[11]/2])
+        boorelist = np.array(
+        [F[0], F[1], 0, F[2], F[3], F[5], F[6]/2, F[6]/2, F[11]/2, F[11]/2])
         boorelist = boorelist.reshape(1, 10)
         np.savetxt(f, boorelist)
 
@@ -124,8 +124,6 @@ def booreFileMaker():
         f.write('stop')
     
     make_executable(fname)   
-
-
 
 
 def make_executable(path):
