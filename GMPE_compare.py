@@ -34,24 +34,23 @@ def coeffPGApicker(condition1, condition2):
         'Error. You have not selected valid conditions for coefficients.')
 
 
-def zhao_06_GMPE():
+def zhao_06_GMPE(i, dist):
     
     a, b, c, d, e, Sr, Si, Ss, Ssl = coeffPGApicker(str(argv[1]), str(argv[2]))
     
     splitdb = splitcompANDloc(np.loadtxt(
     '/Users/jamesholt/Documents/MRes/20001006133000/20001006133000.kik/M6.7_data_boore_complete.txt'))
     
-    d, x = distSorter(splitdb[0], 'rrup')
- 
-    for i in x:
-    r = x[i] + c * np.exp(d * argv[3])
-    y[i] = (
-    (a * argv[3]) + (b * x[i]) - np.log10(r) + Sr + Si + Ss + (Ssl 
-    * np.log10(x[i])) + 0.6 + 0.723
-    
+    db, x = distSorter(splitdb[0], 'rrup')
+    y = np.zeros(len(x), dtype=float)
+    for i in range(0, len(x)):
+        i = int(i)
+        r = x[i] + (c * np.exp(d * 7.0))
+        y[i] = (np.exp(((a * 7.0) + (b * x[i]) - np.log(r) + 0.293)))/(100*9.81)
+        #The GMPE values come out in g. 
 
 
-
+#+ Sr + Si + Ss + (Ssl * np.log(x[i]))
 def splitcompANDloc(data):
     """ This function separates the file into EW1, NS1, UD1, EW2, NS2, UD2. 
     It takes the file as an argument.  """
@@ -83,15 +82,15 @@ def distSorter(data, sortingcol):
     else:
         print('Incorrect sorting column, please choose rrup, rcmbl or rjb.')
     
-    b = np.array([data[3], data[col]])
+    b = np.array([data[:, 3], data[:, col]])
     new = b.transpose()
     distsorted = new[new[:, 1].argsort()]
     
-    x = distmaker(distsorted[1])
+    x = distmaker(distsorted[:, 1])
     return distsorted, x
 
 def distmaker(data):
-    x = np.arange(0, data.max())
+    x = np.arange(1, data.max())
     return x
 
 
