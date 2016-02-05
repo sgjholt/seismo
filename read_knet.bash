@@ -1,7 +1,8 @@
 #!/bin/bash
 for file in *.EW1 *.EW2 *.NS1 *.NS2 *.UD1 *.UD2; 
-do 
-	awk 'BEGIN{}\
+do echo $file; 
+	
+        awk 'BEGIN{}\
         {if($1 == "Origin" && $2 == "Time"){Odate=$3;Otime=$4;}\
         if($1 == "Lat."){lat=$2;}\
 	    if($1 == "Long."){lon=$2;}\
