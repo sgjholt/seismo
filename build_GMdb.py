@@ -6,6 +6,7 @@ from process_kikhdr import W_Cempfaultparams, hyper_epiD
 import os
 import stat
 import subprocess
+from plot_waveforms import preprocessdata
 
 # argv in in order of argv[0] = python script name, argv[1] = full folder path, 
 #... argv[2] is dip in degrees, argv[3] is the magnitude (Mw), argv[4] is the 
@@ -13,10 +14,12 @@ import subprocess
 #argv[1] e.g. = '/Users/jamesholt/Documents/MRes/20001006133000/20001006133000.kik/'
 
 def main():
-    fileList = grab_file_names(str(argv[1]))
+    #call all of the filenames that are needed to build databases
+    headerfiles = grab_file_names(str(argv[1]), 0)#to build GM database
+    files = grab_file_names(str(argv[1]), 1)#to produce FAS for each seismogram
     
     subprocess.call(['rm', str(argv[1]) + str(argv[5])])    
-    for fname in fileList:
+    for fname in headerfiles:
         make_db_files(fname)
     reshapeFile()
     
@@ -30,32 +33,46 @@ def main():
     
     mergedatabase()
     
+    x = 0
+    for i in range(0, len(files)):
+        x += 1
+        print('Calculating FAS {} out of {}'.format(x, len(files)))
+        FASmaker(files[i], headerfiles[i])
     
     
         
-def grab_file_names(path_to_folder):
+def grab_file_names(path_to_folder, flag):
     """ This function uses glob to search for file names using the path string 
         to the folder. Glob then searches for the file extension below and 
         stores the filenames in a list. The function retuns a list for each
         of the glob searches separately. This function returns all lists added 
         together. """ 
-    f1 = glob(path_to_folder + '*.EW1.h')
-
-    f2 = glob(path_to_folder + '*.NS1.h')
-
-    f3 = glob(path_to_folder + '*.UD1.h')
-
-    f4 = glob(path_to_folder + '*.EW2.h')
     
-    f5 = glob(path_to_folder + '*.NS2.h')
+    
+    if flag == 0:
+    
+    
+        f1 = glob(path_to_folder + '*.EW1.h')
 
-    f6 = glob(path_to_folder + '*.UD2.h')
+        f2 = glob(path_to_folder + '*.NS1.h')
 
-    joinedFileList =  f1 + f2 + f3 + f4 + f5 + f6
+        f3 = glob(path_to_folder + '*.UD1.h')
 
+        f4 = glob(path_to_folder + '*.EW2.h')
+    
+        f5 = glob(path_to_folder + '*.NS2.h')
+
+        f6 = glob(path_to_folder + '*.UD2.h')
+
+        joinedFileList =  f1 + f2 + f3 + f4 + f5 + f6
+
+    
+
+    if flag == 1:
+        f = glob(path_to_folder + '*.*[0-9]')
+        joinedFileList = f
+    
     return joinedFileList
-
-    
 
 def write_fname_to_file(fname):
     """ This function writes all of the file paths and names to a single file. """
@@ -110,7 +127,7 @@ def booreFileMaker():
     fname = '/Users/jamesholt/seismograms/DIST_3D.CTL'
     writeString1 = "!Control file for program Dist_3D\n!Name of output file:\ndist_3d.out\n!Minimum Depth for Campbell:\n3.0\n!Number of Fault Planes:\n1\n!Fault orientation (ref lat,long,elev(m),depth, strike, dip, s1, s2, w1, w2):\n"
     writeString2 = "!Lat,long, elev (m) of station, character string for output (can be blank):\n" 
-    #Remove the exisiting DIST_3D.CTL file.
+    #Remove the existing DIST_3D.CTL file.
     subprocess.call(['rm', str(fname)])
     #Begin making the DIST_3D.CTL file
     with open (fname, 'w') as f:
@@ -166,7 +183,35 @@ def mergedatabase():
         
         np.savetxt(f, whole, fmt ='%10.5f', header = header)
     
+def FASmaker(fname, hdr):
     
+    f = np.loadtxt(fname, skiprows=17)
+    h = np.loadtxt(hdr)
+
+    tseries = preprocessdata(f, h)
+    FAS = calcFAS(tseries, h)
+    with open ((str(fname) + '.fas'), 'wb') as f:
+        np.savetxt(f, FAS, fmt ='%10.5f')
+
+
+
+def calcFAS(tseries, h):
+    Fs = h[19]
+    n = len(tseries) #length of the signal
+    k = np.arange(n) #build an array based on length of signal
+    T = n/Fs #sampling time delta
+    frq = k/T #two sides frequency range
+    freq = frq[range(int(n/2))] #one side frequency range
+    #fft computing and normalisation with hamming window applied to ...
+    #spectral leakage ls
+
+    Y = np.fft.fft(tseries) / n 
+    Z = Y[range(int(n/2))] #one side amplitude range    
+    FAS = [freq, abs(Z)]
+    return np.transpose(FAS)
+
+
+
 
 main()
 

@@ -34,16 +34,16 @@ def loadknet_filenhead(fname, fhdr):
     return a, b
 ###############################################################################
 #FUNCTION TO PREPROCESS DATA - gives back acceleration time series
-def preprocessdata(f, linecount, hdr): 
+def preprocessdata(f, hdr): 
     #calculate reshape factor
-    rf = (linecount - 17) * 8 #always 8 columns in file
+    rf = len(f) * 8 #always 8 columns in file
     #tranpose, reshape and detrend the data
     det = sg.detrend(np.reshape((f.transpose()), rf, 1))
     #DEFINE SCALING FACTOR & NUMERATOR/DENOMINATOR
     #call the numerator and denominator for scf and add 0.0 so it doesnt ...
     #...round to 0 when they are divided.    
-    scfN = hdr[21] + 0.0
-    scfD = hdr[22] + 0.0  
+    scfN = float(hdr[21]) 
+    scfD = float(hdr[22])  
     scf = scfN / scfD 
     #apply scaling factor to return acceleration values
     real = det * scf
@@ -140,7 +140,7 @@ def frequencyplots(tseries, hdr, station):
     freq = frq[range(n/2)] #one side frequency range
     #fft computing and normalisation with hamming window applied to ...
     #spectral leakage 
-    Y = np.fft.fft(np.hamming(len(tseries)) * tseries) / n 
+    Y = np.fft.fft(tseries) / n 
     Z = Y[range(n/2)] #one side amplitude range
     
   
