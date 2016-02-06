@@ -190,8 +190,8 @@ def FASmaker(fname, hdr):
 
     tseries = preprocessdata(f, h)
     FAS = calcFAS(tseries, h)
-    with open ((str(fname) + '.fas'), 'wb') as f:
-        np.savetxt(f, FAS, fmt ='%10.5f')
+    F =  (str(fname) + '.fas')
+    np.savetxt(F, FAS)
 
 
 
