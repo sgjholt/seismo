@@ -10,22 +10,23 @@ from plot_waveforms import preprocessdata
 
 # argv in in order of argv[0] = python script name, argv[1] = full folder path, 
 #... argv[2] is dip in degrees, argv[3] is the magnitude (Mw), argv[4] is the 
-#...strike of the fault and argv[5] is the output file name.
-#argv[1] e.g. = '/Users/jamesholt/Documents/MRes/20001006133000/20001006133000.kik/'
+#... strike of the fault, argv[5] is the depth of the quake and argv[6] 
+#... is the output file name.
+# argv[1] e.g. = '/Users/jamesholt/Documents/MRes/20001006133000/20001006133000.kik/'
 
 def main():
-    #call all of the filenames that are needed to build databases
-    headerfiles = grab_file_names(str(argv[1]), 0)#to build GM database
-    files = grab_file_names(str(argv[1]), 1)#to produce FAS for each seismogram
+    # call all of the filenames that are needed to build databases
+    headerfiles = grab_file_names(str(argv[1]), 0)# to build GM database
+    files = grab_file_names(str(argv[1]), 1)# to produce FAS for each seismogram
     
-    subprocess.call(['rm', str(argv[1]) + str(argv[5])])    
-    for fname in headerfiles:
-        make_db_files(fname)
+    subprocess.call(['rm', str(argv[1]) + str(argv[6])])    
+    for i in range(0, len(headerfiles)):
+        make_db_files(headerfiles[i])
     reshapeFile()
     
     saveEqParams(str(argv[1]))
         
-    write_fname_to_file(fileList)
+    write_fname_to_file(headerfiles)
     
     booreFileMaker()
     
@@ -50,26 +51,23 @@ def grab_file_names(path_to_folder, flag):
     
     
     if flag == 0:
+        f1 = glob(str(path_to_folder) + '*.EW1.h')
+
+        f2 = glob(str(path_to_folder) + '*.NS1.h')
+
+        f3 = glob(str(path_to_folder) + '*.UD1.h')
+
+        f4 = glob(str(path_to_folder) + '*.EW2.h')
     
-    
-        f1 = glob(path_to_folder + '*.EW1.h')
+        f5 = glob(str(path_to_folder) + '*.NS2.h')
 
-        f2 = glob(path_to_folder + '*.NS1.h')
-
-        f3 = glob(path_to_folder + '*.UD1.h')
-
-        f4 = glob(path_to_folder + '*.EW2.h')
-    
-        f5 = glob(path_to_folder + '*.NS2.h')
-
-        f6 = glob(path_to_folder + '*.UD2.h')
+        f6 = glob(str(path_to_folder) + '*.UD2.h')
 
         joinedFileList =  f1 + f2 + f3 + f4 + f5 + f6
 
-    
-
     if flag == 1:
-        f = glob(path_to_folder + '*.*[0-9]')
+        f = glob(str(path_to_folder) + '*.*[0-9]')
+        
         joinedFileList = f
     
     return joinedFileList
@@ -86,7 +84,7 @@ def make_db_files(fname):
     """ This function will create a database from the kik-net headers by 
         extracting stnlat h[10], stnlon h[11], stnheight h[12], max acceleration """
       
-    with open (str(argv[1]) + str(argv[5]), 'ab') as f:          
+    with open (str(argv[1]) + str(argv[6]), 'ab') as f:          
             
         h = np.loadtxt(fname)
         EpiD, HypD = hyper_epiD(h)
@@ -100,8 +98,8 @@ def reshapeFile():
     """ This function reshapes the prelim database data. Because it won't let me 
         reshape the data in the function that makes it without messing that
         file up. Why? Reasons, thats why. """
-    dat = np.loadtxt(str(argv[1]) + str(argv[5]))
-    np.savetxt(str(argv[1]) + str(argv[5]), dat.reshape(len(dat) / 6, 6))
+    dat = np.loadtxt(str(argv[1]) + str(argv[6]))
+    np.savetxt(str(argv[1]) + str(argv[6]), dat.reshape(len(dat) / 6, 6))
 
 def saveEqParams(path_to_folder):
     subprocess.call(['rm', path_to_folder + 'quake_params.txt'])
@@ -112,9 +110,9 @@ def saveEqParams(path_to_folder):
         
         SL, DDW, DDWA, RSA, SW, SWA  = W_Cempfaultparams(mag, dip)
     
-        List = grab_file_names(path_to_folder)
+        List = grab_file_names(path_to_folder, 0)
         h = np.loadtxt(List[0])
-        eqparams = np.array([h[6], h[7], h[8], dip, mag, strike, SL, DDW, DDWA, RSA, SW, SWA])  
+        eqparams = np.array([h[6], h[7], float(argv[5]), dip, mag, strike, SL, DDW, DDWA, RSA, SW, SWA])  
             
         header = "Quake lat(deg), Quake lon(deg), Quake Depth(km), Quake Dip (deg), Quake Mag (Mw), Quake Strike (deg), Surface Length(km), Downdip Width(km) (with formula), Downdip W(km) (with area), Area(km^2), S width w/out area(km), S width with area(km)"         
         np.savetxt(f, eqparams, fmt='%10.5f', header=header)
@@ -149,7 +147,7 @@ def booreFileMaker():
         f.write(writeString2)  
     
     with open (fname, 'ab') as f:
-        File = np.loadtxt(str(argv[1]) + str(argv[5]))
+        File = np.loadtxt(str(argv[1]) + str(argv[6]))
         np.savetxt(f, File[:, [0,1,2]], fmt='%10.5f')
    
     with open (fname, 'a') as f:
@@ -174,9 +172,9 @@ def loadOutFile():
     return booredists
 
 def mergedatabase():
-    subprocess.call = (['rm', str(argv[1]) + str(argv[5]) + '_complete.txt'])
-    with open (str(argv[1]) + str(argv[5]) + '_complete.txt', 'wb') as f:
-        maindb = np.loadtxt(str(argv[1]) + str(argv[5]))
+    subprocess.call = (['rm', str(argv[1]) + str(argv[6]) + '_complete.txt'])
+    with open (str(argv[1]) + str(argv[6]) + '_complete.txt', 'wb') as f:
+        maindb = np.loadtxt(str(argv[1]) + str(argv[6]))
         boordb = loadOutFile()
         whole = np.concatenate((maindb, boordb), axis = 1)
         header = "Stn Lat (deg), Stn Lon (deg), Stn Height (m), max acc (m/s/s), epicentral dist (km), hypocentral dist (km), Rrup (km), Rcmpbl (km), Rjb (km), AZjb (deg)"

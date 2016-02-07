@@ -13,12 +13,12 @@ from scipy import signal as sg
 from scipy import integrate as igt
 from scipy import fft
 from sys import argv
-from obspy import UTCDateTime
+#from obspy import UTCDateTime
 import datetime as dt
 import time
 ###############################################################################
 # GIVE VARIABLE NAME TO ARGUMENT VALUES
-script, filename, header = argv
+#script, filename, header = argv
 ###############################################################################
 #COUNT THE NUMBER OF LINES IN INPUT FILE
 def linecounter(fname):
@@ -168,22 +168,22 @@ def frequencyplots(tseries, hdr, station):
 
 ############################################################################
 
-f, hdr = loadknet_filenhead(filename, header)
+#f, hdr = loadknet_filenhead(filename, header)
 
-lc, name = linecounter(filename)
+#lc, name = linecounter(filename)
 
-acc = preprocessdata(f, lc, hdr)
+#acc = preprocessdata(f, lc, hdr)
 
-t, d = definestime(acc, hdr)
+#t, d = definestime(acc, hdr)
 
-plottingacc(acc, t, d, name)
+#plottingacc(acc, t, d, name)
 
-vel = int_and_append(acc, hdr)
+#vel = int_and_append(acc, hdr)
 
-disp = int_and_append(vel, hdr)
+#disp = int_and_append(vel, hdr)
 
-plottingaccveldisp(acc, vel, disp, d, name)
+#plottingaccveldisp(acc, vel, disp, d, name)
 
-frequencyplots(acc, hdr, name)
+#frequencyplots(acc, hdr, name)
 
 
