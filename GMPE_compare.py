@@ -9,7 +9,7 @@ from sys import argv
 
 
 
-def coeffPGApicker(condition1, condition2):
+def coeffPGApicker_zhao_06(condition1, condition2):
     a, b, c, d, e, Sr, Si, Ss, Ssl = [
     1.101, -0.00564, 0.0055, 1.080, 0.01412, 0.251, 0.000, 0.2607, -0.528]
     
@@ -36,7 +36,7 @@ def coeffPGApicker(condition1, condition2):
 
 def zhao_06_GMPE(i, dist):
     
-    a, b, c, d, e, Sr, Si, Ss, Ssl = coeffPGApicker(str(argv[1]), str(argv[2]))
+    a, b, c, d, e, Sr, Si, Ss, Ssl = coeffPGApicker_zhao_06(str(argv[1]), str(argv[2]))
     
     splitdb = splitcompANDloc(np.loadtxt(
     '/Users/jamesholt/Documents/MRes/20001006133000/20001006133000.kik/M6.7_data_boore_complete.txt'))
@@ -56,7 +56,7 @@ def splitcompANDloc(data):
     It takes the file as an argument.  """
     
     #calculate number of rows there should be for each channel
-    rows = len(data) / 6
+    rows = len(data) / 6 
     EWone = data[0:rows, 0:(data.size/len(data))]
     NSone = data[(rows):(rows * 2), 0:(data.size/len(data))]
     UDone = data[(rows * 2):(rows * 3), 0:(data.size/len(data))]
