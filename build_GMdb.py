@@ -69,6 +69,21 @@ def grab_file_names(path_to_folder, flag):
         f = glob(str(path_to_folder) + '*.*[0-9]')
         
         joinedFileList = f
+
+    if flag == 2:
+        f1 = glob(str(path_to_folder) + '*.EW1.fas')
+
+        f2 = glob(str(path_to_folder) + '*.NS1.fas')
+
+        f3 = glob(str(path_to_folder) + '*.UD1.fas')
+
+        f4 = glob(str(path_to_folder) + '*.EW2.fas')
+    
+        f5 = glob(str(path_to_folder) + '*.NS2.fas')
+
+        f6 = glob(str(path_to_folder) + '*.UD2.fas')
+        
+        joinedFileList =  f1 + f2 + f3 + f4 + f5 + f6
     
     return joinedFileList
 
@@ -209,12 +224,39 @@ def calcFAS(tseries, h):
     return np.transpose(FAS)
 
 
+def FASFinder(fname, frequency):
+    File = np.loadtxt(fname)
+    num = find_nearest(File[:,0], float(frequency))
+    for i in range(0, len(File)):
+        if File[i,0] == num:
+            x = np.array([0, File[i,1]], dtype=float).reshape(1, 2)
+            with open(('FAS_' + str(frequency) + '.txt'), 'ab') as f:
+                np.savetxt(f, x)
+    
+    
+def FASDist(frequency):
+    dists = np.loadtxt('M6_7_20001006_ss_complete.txt', usecols=(4, 5, 6, 7, 8))
+    n = np.loadtxt(('FAS_' + str(frequency) + '.txt'))
+    n = np.concatenate((n[:,1], dists), axis=1)
+    np.savetxt(('FAS_' + str(frequency) + '.txt'), n)
 
+    
+           
+
+def find_nearest(array,value):
+    idx = (np.abs(array-value)).argmin()
+    return array[idx]
 
 main()
 
-        
-    
+     #with open((str(argv[1]) + 'FAS_' + str(frequency) + '.txt'), 'ab') as f:   
+     #dists = np.loadtxt(
+                #str(argv[1]) + str(argv[6]) + '_complete.txt', usecols=(
+                #4, 5, 6, 7, 8))
+
+
+
+
 
 #def check_if_exist(path_to_file, filename):
     #if os.path.isfile(path_to_file + filename) == False:
