@@ -26,8 +26,9 @@ import os
 #argv[1] - earthquake folder name (eg. '20070716101300.kik')
 #argv[2] - surface or borehole
 #argv[3] - geometric or no '-G' = geometric
-
-
+#argv[4] - define upper and lower limit of plots (Max 5)
+#argv[5] - define upper limit for frequency range of interest
+#argv[6] - smoothing 'on' or 'off'
 #-------------------------------------------------------------------------------
 
 def main():
@@ -38,26 +39,91 @@ def main():
                                       #separate them accordingly (in half).
         flistEW = horzflist[0 : Bin]
         flistNS = horzflist[Bin : (2 * Bin)]
+        names = grabSiteName(flistEW)
+        
+        
+
         n = 0
-        for i in range(0, len(horzflist)):
+        for i in range(0, int(argv[4])):
             dathorz = processGeo(flistEW[i], flistNS[i]) 
             datvert = processNorm(vertflist[i]) 
+            H_V =  dathorz[:,1]/datvert[:,1]
+            
             n += 1
             
-            H_V =  dathorz[:,1]/datvert[:,1]
-            plt.subplot(Bin,Bin,n)
-            plt.loglog(dathorz[:,0],dathorz[:,1])
-            plt.loglog(dathorz[:,0],datvert[:,1])
-             
-            plt.loglog(dathorz[:,0], H_V)
-            #plt.subplot(Bin,Bin, i)  
-            
+           
+            plt.subplot(int(argv[4]),1, n)
+            for ax in plt.gcf().axes:
+                try:
+                    ax.label_outer()
+                except:
+                    pass
+            plotHV(dathorz, datvert, H_V, argv[6], names[i])
             plt.show()
 
+           
+
+            
+    
+
+def grabSiteName(flist):
+    if argv[2] == 'borehole':
+
+        flist = [f.replace('/Volumes/J_Holt_HDD/MRes/Modules/Thesis/Data/' + str(argv[1]), '') for f in flist]        
+
+        flist = [f.replace('/', '') for f in flist] 
+    
+        flist = [f.replace('.EW1', '') for f in flist] 
+
+    elif argv[2] == 'surface':
+
+        flist = [f.replace('/Volumes/J_Holt_HDD/MRes/Modules/Thesis/Data/' + str(argv[1]), '') for f in flist]        
+
+        flist = [f.replace('/', '') for f in flist] 
+    
+        flist = [f.replace('.EW2', '') for f in flist] 
+    
+    return flist
 
 
+def runningMeanFast(x, N):
+    return np.convolve(x, np.ones((N,))/N)[(N-1):]
 
 
+def plotHV(horz, vert, HV, flag, name):
+    freq = horz[:,0]
+    horzdat = horz[:,1]
+    vertdat = vert[:,1]
+
+    if flag == 'off':
+    
+        plt.loglog(freq[freq<=int(argv[5])],horzdat[freq<=int(argv[5])],label='Horz')
+        plt.loglog(freq[freq<=int(argv[5])],vertdat[freq<=int(argv[5])],label='Vert')
+        plt.loglog(freq[freq<=int(argv[5])], HV[freq<=int(argv[5])], label='H/V')
+        plt.title('HV Ratio for ' + str(name))
+        plt.xlabel('Frequency [Hz]')
+        plt.ylabel('Amplitude [m/s]')
+        plt.legend(loc='upper left', shadow=True)
+        
+
+    elif flag == 'on':
+        print('Please define a smoothing window \n') 
+        smooth_wind = input('> ')
+
+        freq = runningMeanFast(freq, int(smooth_wind))
+        horzdat = runningMeanFast(horzdat, int(smooth_wind))
+        vertdat = runningMeanFast(vertdat, int(smooth_wind))
+        HV = runningMeanFast(HV, int(smooth_wind))
+        
+        plt.loglog(freq[freq<=int(argv[5])],horzdat[freq<=int(argv[5])],'-',label='Horz')
+        plt.loglog(freq[freq<=int(argv[5])],vertdat[freq<=int(argv[5])],'-',label='Vert')
+        plt.loglog(freq[freq<=int(argv[5])], HV[freq<=int(argv[5])],'-', label='H/V')
+        plt.title('Smoothed HV Ratio for ' + str(name) + ': Smoothing window =' + str(smooth_wind))
+        plt.xlabel('Frequency [Hz]')
+        plt.ylabel('Amplitude [m/s]')
+        plt.legend(loc='upper left', shadow=True)
+        
+        
 
 
 
