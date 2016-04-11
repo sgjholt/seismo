@@ -83,20 +83,10 @@ def geoMean(file1, file2):
     """Calculates the geometric mean of two seismogram componants (e.g. N-S and
     E-W componants. The files must already be loaded into python using np.load.
     USAGE: geomean = geoMean(EW, NS). """
-    file1min = abs(min(file1))
-    file2min = abs(min(file2))
-
-    if file1min > file2min:
-        Min = file1min
-    else:
-        Min = file2min
     
-    file1 = file1 + (Min + 1)
-    file2 = file2 + (Min + 1)
 
     
     geoMean = (file1*file2)**(1/2)
-    geoMean = sg.detrend(geoMean)
 
     return geoMean
 
