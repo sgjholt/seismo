@@ -31,6 +31,8 @@ import os
 #argv[6] - smoothing 'on' or 'off'
 #-------------------------------------------------------------------------------
 
+
+
 def main():
     if argv[3] == '-G':
         horzflist = horzWave()
@@ -41,27 +43,27 @@ def main():
         flistNS = horzflist[Bin : (2 * Bin)]
         names = grabSiteName(flistEW)
         
-        
+        if argv[6] == 'on':
+            print('Please define a smoothing window \n') 
+            smooth_wind = input('> ')
+        else:
+            smooth_wind = 0
 
         n = 0
         for i in range(0, int(argv[4])):
-            dathorz = processGeo(flistEW[i], flistNS[i]) 
+            dathorz, freq = processGeo(flistEW[i], flistNS[i]) 
             datvert = processNorm(vertflist[i]) 
-            H_V =  dathorz[:,1]/datvert[:,1]
+            H_V =  dathorz/datvert
             
             n += 1
             
            
             plt.subplot(int(argv[4]),1, n)
-            for ax in plt.gcf().axes:
-                try:
-                    ax.label_outer()
-                except:
-                    pass
-            plotHV(dathorz, datvert, H_V, argv[6], names[i])
-            plt.show()
+            
+            plotHV(dathorz, datvert, H_V, argv[6], names[i], smooth_wind, freq)
+        plt.show()
 
-           
+        
 
             
     
@@ -90,35 +92,32 @@ def runningMeanFast(x, N):
     return np.convolve(x, np.ones((N,))/N)[(N-1):]
 
 
-def plotHV(horz, vert, HV, flag, name):
-    freq = horz[:,0]
-    horzdat = horz[:,1]
-    vertdat = vert[:,1]
+def plotHV(horzdat, vertdat, HV, flag, name, smooth_wind, freq):
+   
 
     if flag == 'off':
     
-        plt.loglog(freq[freq<=int(argv[5])],horzdat[freq<=int(argv[5])],label='Horz')
-        plt.loglog(freq[freq<=int(argv[5])],vertdat[freq<=int(argv[5])],label='Vert')
+        #plt.loglog(freq[freq<=int(argv[5])],horzdat[freq<=int(argv[5])],label='Horz')
+        #plt.loglog(freq[freq<=int(argv[5])],vertdat[freq<=int(argv[5])],label='Vert')
         plt.loglog(freq[freq<=int(argv[5])], HV[freq<=int(argv[5])], label='H/V')
-        plt.title('HV Ratio for ' + str(name))
+        plt.title('HV Ratio for ' + str(name) + ' :Smoothing OFF')
         plt.xlabel('Frequency [Hz]')
         plt.ylabel('Amplitude [m/s]')
         plt.legend(loc='upper left', shadow=True)
         
 
     elif flag == 'on':
-        print('Please define a smoothing window \n') 
-        smooth_wind = input('> ')
+        
 
         freq = runningMeanFast(freq, int(smooth_wind))
         horzdat = runningMeanFast(horzdat, int(smooth_wind))
         vertdat = runningMeanFast(vertdat, int(smooth_wind))
         HV = runningMeanFast(HV, int(smooth_wind))
         
-        plt.loglog(freq[freq<=int(argv[5])],horzdat[freq<=int(argv[5])],'-',label='Horz')
-        plt.loglog(freq[freq<=int(argv[5])],vertdat[freq<=int(argv[5])],'-',label='Vert')
+        #plt.loglog(freq[freq<=int(argv[5])],horzdat[freq<=int(argv[5])],'-',label='Horz')
+        #plt.loglog(freq[freq<=int(argv[5])],vertdat[freq<=int(argv[5])],'-',label='Vert')
         plt.loglog(freq[freq<=int(argv[5])], HV[freq<=int(argv[5])],'-', label='H/V')
-        plt.title('Smoothed HV Ratio for ' + str(name) + ': Smoothing window =' + str(smooth_wind))
+        plt.title('Smoothed HV Ratio for ' + str(name) + ' : Smoothing window =' + str(smooth_wind))
         plt.xlabel('Frequency [Hz]')
         plt.ylabel('Amplitude [m/s]')
         plt.legend(loc='upper left', shadow=True)
@@ -195,10 +194,11 @@ def processGeo(fname1, fname2):
     dat1 = preprocessdata(dat1, head1)
     dat2 = preprocessdata(dat2, head2)
     #calculate the geometric mean for the two horizontal axes
-    horzDat = geoMean(dat1, dat2)
-    FAS = calcFAS(horzDat, head1)
-    
-    return FAS #header just for sampling frequency.
+    FAS1 = calcFAS(dat1, head1)
+    FAS2 = calcFAS(dat2, head2)
+    FAS = geoMean(FAS1[:,1], FAS2[:,1])
+    freq = FAS1[:,0]
+    return FAS, freq #header just for sampling frequency.
 
 def processNorm(fname):
     #Load the revelent files
@@ -207,6 +207,8 @@ def processNorm(fname):
     #assign real units to the seismograms - reshape
     data = preprocessdata(data, header)
     FAS = calcFAS(data, header)
-    return FAS
+    return FAS[:,1]
 
-   
+
+if argv[0] == 'HV.py':
+    main() 
