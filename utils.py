@@ -188,21 +188,6 @@ def streamBuilder(path, flag):
                 st_surface += read(fnames[half_group+i+group_size*2])
         return st_surface
 
-def streamBuild(path):
-    fnames = grab_file_names(path, 2)
-    for i in range(0, len(fnames)):
-        if i == 0:
-            st = read(fnames[i])
-        if i > 0:
-            st += read(fnames[i])
-
-    return st
-
-
-
-
-
-
 
     
 def streamBuild(path,db):
@@ -223,5 +208,5 @@ def streamBuild(path,db):
     
     for i in range(0, len(datB)):
         st[i].stats["distance"] = datB[i]*1000 #dist in meters
-    
+    st.detrend()
     return st
