@@ -205,3 +205,23 @@ def streamBuild(path):
 
 
     
+def streamBuild(path,db):
+    fnames = grab_file_names(path, 2)
+    for i in range(0, len(fnames)):
+        if i == 0:
+            st = read(fnames[i])
+        if i > 0:
+            st += read(fnames[i])
+    for i in range(0, len(st)):
+        st[i].stats["coordinates"] = {} # add the coordinates to your dict
+        st[i].stats["coordinates"]["latitude"] = st[i].stats.knet.stla
+        st[i].stats["coordinates"]["longitude"] = st[i].stats.knet.stlo
+        st[i].stats["elevation"] = st[i].stats.knet.stel
+    
+    datB = np.loadtxt(path+db, skiprows=1)
+    datB = datB[:,8] #rjb
+    
+    for i in range(0, len(datB)):
+        st[i].stats["distance"] = datB[i]*1000 #dist in meters
+    
+    return st
