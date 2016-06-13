@@ -5,6 +5,10 @@ import scipy.signal as sg
 
 
 def chkEmptyfile(fname):
+    """chkEmptyfile checks to see if header files are empty. This suggests
+       the source file needs to be re-untarred as the file has become corrupt.
+       USAGE: chkEmptyfile(list_of_hdr_fnames)
+    """
     for filename in fname:
         f = np.loadtxt(filename)
 
@@ -123,7 +127,7 @@ def calcFAS(tseries, h):
 
     Y = np.fft.fft(tseries) / n 
     Z = Y[range(int(n/2))] #one side amplitude range    
-    FAS = [freq, abs(Z)]
+    FAS = [freq, abs(Z)*2 ] #multipy by factor of two to get whole amplitude.
     return np.transpose(FAS)
 
 #def line_picker(line, mouseevent):
@@ -152,9 +156,47 @@ def calcFAS(tseries, h):
  #   print('onpick2 line:', event.pickx, event.picky)
 
 
+def streamBuilder(path, flag):
+    
+    fnames = grab_file_names(path, 2)
 
+    group_size = int(len(fnames)/6) #amount of stations in each group ...
+                                    #(EW1, EW2 etc..)
+    half_group = int(len(fnames)/2)
 
+    if flag == 'Downhole':     
+        for i in range(0, group_size):
+            if i == 0: #first group to begin the stream
+                st_downhole = read(fnames[0])
+                st_downhole += read(fnames[group_size])
+                st_downhole += read(fnames[group_size*2])
+            if i > 0:    
+                st_downhole += read(fnames[i])
+                st_downhole += read(fnames[i+group_size])
+                st_downhole += read(fnames[i+group_size*2])
+        return st_downhole
+    
+    if flag == 'Surface':
+        for i in range(0, group_size):
+            if i == 0: #first group to begin the stream
+                st_surface = read(fnames[half_group])
+                st_surface += read(fnames[half_group+group_size])
+                st_surface += read(fnames[half_group+group_size*2])
+            if i > 0:    
+                st_surface += read(fnames[half_group+i])
+                st_surface += read(fnames[half_group+i+group_size])
+                st_surface += read(fnames[half_group+i+group_size*2])
+        return st_surface
 
+def streamBuild(path):
+    fnames = grab_file_names(path, 2)
+    for i in range(0, len(fnames)):
+        if i == 0:
+            st = read(fnames[i])
+        if i > 0:
+            st += read(fnames[i])
+
+    return st
 
 
 
