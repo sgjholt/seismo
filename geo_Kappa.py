@@ -30,6 +30,110 @@ def main(argv):
 
     return st
 
+
+def multiQuakePlot(List, FREQ):
+    if argv[3] == 'Downhole':
+        F = 'FAS_dist_DWN_'+str(FREQ)+'.txt'
+    else:
+        F = 'FAS_dist_SRF_'+str(FREQ)+'.txt'
+    for f in List:
+        DAT = np.loadtxt('/media/james/J_Holt_HDD/MRes/Modules/Thesis/Data/'+f+'/'+F)
+        Mo = np.loadtxt(
+        '/media/james/J_Holt_HDD/MRes/Modules/Thesis/Data/'+f+'/'+'Mo.txt')
+        SF = FASscaler(FREQ, 7, Mo)
+        ax1 = plt.subplot(121)
+        plt.ylabel('LOG10(FAS) [M/S]')
+        plt.xlabel('LOG10(RJB) [KM]')
+        plt.loglog(DAT[1]/1000, DAT[0],'.')
+        plt.setp(ax1.get_xticklabels(), fontsize=14)
+        plt.setp(ax1.get_yticklabels(), fontsize=14)
+        ax1.set_axis_bgcolor('w')
+        plt.suptitle(
+        'FAS @ '+str(FREQ)+' HZ Raw [left] and Shifted to Mw 7 [right]', fontsize=16)
+        
+        ax2 = plt.subplot(122, sharex = ax1, sharey=ax1)
+        plt.loglog(DAT[1]/1000, DAT[0]*SF,'.')
+        plt.xlabel('LOG10(RJB) [KM]')
+        plt.setp(ax2.get_yticklabels(), visible=False)
+        plt.setp(ax2.get_xticklabels(), fontsize=14)
+        ax2.set_axis_bgcolor('w')
+    
+    plt.savefig('/home/james/Dropbox/MRes/Modules/Thesis/poster/FAS_'+str(FREQ)+'_HZ.pdf')
+    
+def smooth_plotter(List, FREQ, argv):
+    out, out_SF = collectDATA(List, FREQ, argv)
+    stats = binner(dat, 20):
+    dat_range = np.array([(stats[4]), (stats[5])])
+    plt.errorbars(stats[0], stats[3], dat_range)
+    
+    
+    
+
+
+def binner(dat, noBins):
+    dat[1] = dist #distance data
+    dat[0] = data #actual data
+    hist = np.histogram(dist, noBins)
+    bins = hist[1] 
+    stats  = np.zeros([6, (int(len(bins))-1)])
+    
+    for i in range(1, int(len(bins))):
+        if i == 1:
+            bin1 = np.array([ data[dist < bins[i]], dist[dist < bins[i]] ])
+        if i > 1: 
+            bin1 = np.array(
+            [data[(dist >=bins[i-1]
+            ) & (dist<bins[i])], dist[(dist >=bins[i-1]) & (dist<bins[i])]])
+        #meandist = bin1[1].mean()
+        #binmaxdist = bin1[1].max()
+        #binmindist = bin1[1].min()
+        #meanpt = bin1[0].mean()
+        #binmax = bin1[0].max()
+        #binmin = bin1[0].min()
+        stats[:,i-1] = np.array(
+        [bin1[1].mean(), bin1[1].max(),bin1[1].min(),bin1[0].mean(),bin1[0].max(),bin1[0].min()]) 
+    return stats 
+        
+            
+   #bin2 = np.array([data[(dist >=50) & (dist<100)], dist[(dist >=50) & (dist<100)]]) 
+
+   
+    
+
+
+def collectDATA(List, FREQ, argv):
+    if argv[3] == 'Downhole':
+        F = 'FAS_dist_DWN_'+str(FREQ)+'.txt'
+    else:
+        F = 'FAS_dist_SRF_'+str(FREQ)+'.txt'
+    i = 0
+    for f in List:
+        if i > 0:
+            OUTVEC_SF = np.concatenate((OUTVEC_SF,tmp_SF), axis=1)
+            OUTVEC = np.concatenate((OUTVEC,tmp), axis=1)
+
+        DAT = np.loadtxt('/media/james/J_Holt_HDD/MRes/Modules/Thesis/Data/'+f+'/'+F)
+
+        Mo = np.loadtxt(
+        '/media/james/J_Holt_HDD/MRes/Modules/Thesis/Data/'+f+'/'+'Mo.txt')
+        SF = FASscaler(FREQ, 7, Mo)
+        tmp_SF = DAT*SF
+
+        tmp = DAT
+
+        if i == 0:
+            OUTVEC_SF = tmp_SF
+            OUTVEC = tmp
+
+        i += 1
+    return OUTVEC, OUTVEC_SF
+        
+
+        
+        
+
+
+
 def plotter(List, num):
 
     i = 0
