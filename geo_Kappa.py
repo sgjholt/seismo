@@ -14,7 +14,7 @@ from utils import grab_file_names
 #argv[3] - surface or downhole? (eg. 'Surface' / 'Downhole')
 #-------------------------------------------------------------------------------
 
-def main():
+def main(argv):
     
     st = streamBuild(argv[1], argv[2]) #load in data stream
     s_pick = S_picker(st) #pick the S-wave arrivals
@@ -22,17 +22,24 @@ def main():
     print("Grabbing S waveforms.")
     WindowGrabber(st) #grab the s-windows in time domain
     print("Generating FAS.")
-    FASmaker(st)
-    for i in range(1, 11):
-        freqPicker(st, i)
-i = 0
-for f in List:
+    FASmaker(st, argv)
+    num = [0.3, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+    for i in range(0, int(len(num))):
+        
+        freqPicker(st, num[i], argv)
+
+    return st
+
+def plotter(List, num):
+
+    i = 0
+    for f in List:
     
-    ratio = FASscaler(num[i], 7, 4.42e19)
-    DAT = np.loadtxt(f)
-    plt.loglog(DAT[1]/1000, DAT[0]*ratio, '.')
-    i += 1
-plt.show()
+        ratio = FASscaler(num[i], 7, 4.42e19)
+        DAT = np.loadtxt(f)
+        plt.loglog(DAT[1]/1000, DAT[0]*ratio, '.')
+        i += 1
+    plt.show()
 
 def FASscaler(f, Mw, MoREAL):
     """Calculates the scaling factor to shift FAS to that of a reference 
@@ -48,9 +55,9 @@ def FASscaler(f, Mw, MoREAL):
 def idealMo(momentMAG): 
     """Using Kanamori's formula, calculates the ideal Mo for a given Mw. """ 
     Mo = 10**( ( momentMAG*1.5 ) + (6.06*1.5) )
-    return Mopwd
+    return Mo
 
-def freqPicker(st, FREQ):
+def freqPicker(st, FREQ, argv):
 
     halfst = int(len(st)/2)
     group = int(len(st)/6)
@@ -86,13 +93,16 @@ def find_nearest(array,value):
     idx = (np.abs(array-value)).argmin()
     return array[idx]
 
-def FASmaker(st):
+def FASmaker(st, argv):
+    
     for i in range(0, len(st)):
-        FAS = calcFAS(st, st[i].stats.swindow)        
+        FAS = calcFAS(st, st[i].stats.swindow, i)        
         st[i].stats["FAS"] = {}
         st[i].stats["FAS"]["Spectrum"] = FAS[:,1]
         st[i].stats["FAS"]["Frequency"] = FAS[:,0]
-        print('FAS {0} out of {1}'.format(i, int(len(st)))) 
+        np.savetxt(argv[1]+"S_WindFAS_"+str(st[i].stats.station)+"."+str(
+        st[i].stats.channel)+".FAS", FAS)
+        print('FAS {0} out of {1}'.format(i+1, int(len(st)))) 
 
 
 def geoMean(file1, file2, file3):
@@ -106,8 +116,8 @@ def geoMean(file1, file2, file3):
 
 
 
-def calcFAS(st, tseries):
-    Fs = (1/st[0].stats.delta)
+def calcFAS(st, tseries, i):
+    Fs = (1/st[i].stats.delta)
     n = len(tseries) #length of the signal
     k = np.arange(n) #build an array based on length of signal
     T = n/Fs #sampling time delta
@@ -243,5 +253,5 @@ def maxNPTS(st):
     return Max
 
 #if __name__ == __main__:
-    main()
+    #main()
  

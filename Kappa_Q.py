@@ -116,8 +116,10 @@ def processGeo(fname1, fname2):
     dat1 = preprocessdata(dat1, head1)
     dat2 = preprocessdata(dat2, head2)
     #calculate the geometric mean for the two horizontal axes
-    horzDat = geoMean(dat1, dat2)
-    FAS = calcFAS(horzDat, head1)
+    
+    FAS1 = calcFAS(dat1, head1)
+    FAS2 = calcFAS(dat2, head2)
+    FAS = geoMean(FAS1, FAS2)
     return FAS #header just for sampling frequency.
 
 def processNorm(fname):

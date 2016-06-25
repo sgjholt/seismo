@@ -1,5 +1,5 @@
 #!/bin/bash
-for file in *.EW1 *.EW2 *.NS1 *.NS2 *.UD1 *.UD2; 
+for file in *.*[0-9]; 
 do echo $file; 
 	
         awk 'BEGIN{}\
