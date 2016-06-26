@@ -1,6 +1,7 @@
 from obspy.core import read
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.lines as mlines
 from utils import grab_file_names
 
 
@@ -31,15 +32,16 @@ def main(argv):
     return st
 
 
-def multiQuakePlot(List, FREQ, argv):
+def multiQuakePlot(List, FREQ, argv, on_off):
     if argv[3] == 'Downhole':
         F = 'FAS_dist_DWN_'+str(FREQ)+'.txt'
     else:
         F = 'FAS_dist_SRF_'+str(FREQ)+'.txt'
     for f in List:
-        DAT = np.loadtxt('/Volumes/J_Holt_HDD/MRes/Modules/Thesis/Data/'+f+'/'+F)
+        DAT = np.loadtxt('/media/james/J_Holt_HDD/MRes/Modules/Thesis/Data/'+f+'/'+F)
+        #print(len(DAT[1]))
         Mo = np.loadtxt(
-        '/Volumes/J_Holt_HDD/MRes/Modules/Thesis/Data/'+f+'/'+'Mo.txt')
+        '/media/james/J_Holt_HDD/MRes/Modules/Thesis/Data/'+f+'/'+'Mo.txt')
         SF = FASscaler(FREQ, 7, Mo)
         ax1 = plt.subplot(121)
         plt.ylabel('LOG10(FAS) [M/S]')
@@ -48,28 +50,104 @@ def multiQuakePlot(List, FREQ, argv):
         plt.setp(ax1.get_xticklabels(), fontsize=14)
         plt.setp(ax1.get_yticklabels(), fontsize=14)
         ax1.set_axis_bgcolor('w')
-        plt.suptitle(
-        'FAS @ '+str(FREQ)+' HZ Raw [left] and Shifted to Mw 7 [right]', fontsize=16)
-        
+        if argv[3] == 'Downhole':
+            plt.suptitle(
+            'FAS @ '+str(
+             FREQ)+' HZ Raw [left] and Shifted to Mw 7 [right] : Borehole', fontsize=16)
+        else:
+            plt.suptitle(
+            'FAS @ '+str(
+            FREQ)+' HZ Raw [left] and Shifted to Mw 7 [right] : Surface', fontsize=16)
         ax2 = plt.subplot(122, sharex = ax1, sharey=ax1)
         plt.loglog(DAT[1]/1000, DAT[0]*SF,'.')
         plt.xlabel('LOG10(RJB) [KM]')
         plt.setp(ax2.get_yticklabels(), visible=False)
         plt.setp(ax2.get_xticklabels(), fontsize=14)
         ax2.set_axis_bgcolor('w')
-    
-    plt.savefig('/Users/jamesholt/Dropbox/MRes/Modules/Thesis/poster/FAS_'+str(FREQ)+'_HZ.pdf')
-    
-def smooth_plotter(List, FREQ, argv):
-    out, out_SF = collectDATA(List, FREQ, argv)
-    stats = binner(out, 20)
-    statsSF = binner(out_SF, 20)
+    if on_off == 'on':
+        #smooth_plotter(List, FREQ, 30, argv)
+        plt.show()
+    else:
+        if argv[3] == 'Downhole':
+            plt.savefig(
+            '/home/james/Dropbox/MRes/Modules/Thesis/poster/FAS_DWN_'+str(FREQ)+'_HZ.pdf')
+            plt.close() #DONT FORGET TO CLOSE THE PLOT IF SAVING FIGURES IN BATCH!!num
+        else:
+            plt.savefig(
+            '/home/james/Dropbox/MRes/Modules/Thesis/poster/FAS_SRF_'+str(FREQ)+'_HZ.pdf')
+            plt.close()
+
+
+
+def smooth_plotter(List, FREQ, binNo, argv, on_off):
+    #collect all the data into one vector for scaled and not scaled data
+    out, out_SF = collectDATA(List, FREQ, argv) 
+    #bin the data appropriately, include information about the data variance
+    stats = binner(out, binNo)
+    statsSF = binner(out_SF, binNo)
+    #calculate the difference between the max/min and median points for variance plot
+    #(errorbars)
     dat_range = np.array([(stats[3]-stats[5]), (stats[4]-stats[3])])
     dat_rangeSF = np.array([(statsSF[3]-statsSF[5]), (statsSF[4]-statsSF[3])])
-    plt.errorbar(stats[0]/1000, stats[3], dat_range)
-    plt.errorbar(stats[0]/1000, statsSF[3], dat_range)
+    #plot the log of FAS vs distance for binned data
+    plt.semilogy(
+    stats[0]/1000, stats[3], 'rs', markersize=5, alpha = 0.7, label = 'Raw Data' )
+    plt.semilogy(
+    stats[0]/1000, statsSF[3], 'bs', markersize=5, label = 'Shifted to Mw 7')
+    red_sq = mlines.Line2D([], [], color='red', marker='s',
+                          markersize=15, label='Raw Data')   
+    blue_sq = mlines.Line2D([], [], color='blue', marker='s',
+                          markersize=15, label='Shifted to Mw 7')
+
+    plt.legend(handles=[red_sq, blue_sq], loc='lower left')
+
+    plt.errorbar(stats[0]/1000, statsSF[3], dat_rangeSF, fmt = 'bs', capsize=10)
+    plt.errorbar(stats[0]/1000, stats[3], dat_range, fmt = 'rs', capsize=0, linewidth=5, alpha=0.3)
+    #errorfill(stats[0]/1000, stats[3], dat_range, color = 'r')
+    #errorfill(stats[0]/1000, statsSF[3], dat_rangeSF, color = 'b')
+    #labels and stuff
+    plt.xlabel('RJB [KM]', fontsize=14)
+    plt.ylabel('LOG10(FAS) [M/S]', fontsize=14)
     
-    
+    if argv[3] == 'Downhole':
+        plt.title(
+        'Smoothed Plot of the Median of \n'+str(
+         binNo)+' Data Bins for FAS @ '+str(
+         FREQ)+' HZ : Borehole', y=1.01, fontsize=16) 
+    else:
+        plt.title(
+        'Smoothed Plot of the Median of \n'+str(
+         binNo)+' Data Bins for FAS @ '+str(
+         FREQ)+' HZ : Surface', y=1.01, fontsize=16)
+    if on_off == 'on':
+        #smooth_plotter(List, FREQ, 30, argv)
+        plt.show()
+    else:
+        if argv[3] == 'Downhole':
+            plt.savefig(
+            '/home/james/Dropbox/MRes/Modules/Thesis/poster/smooth_FAS_DWN_'+str(
+            FREQ)+'_HZ_bins='+str(binNo)+'.pdf')
+            plt.close()
+            
+        else:
+            plt.savefig(
+            '/home/james/Dropbox/MRes/Modules/Thesis/poster/smooth_FAS_SRF_'+str(
+             FREQ)+'_HZ_bins='+str(binNo)+'.pdf')
+            plt.close()
+
+def errorfill(x, y, yerr, color=None, alpha_fill=0.3, ax=None):
+    ax = ax if ax is not None else plt.gca()
+    if color is None:
+        color = ax._get_lines.color_cycle.next()
+    if np.isscalar(yerr) or len(yerr) == len(y):
+        ymin = y - yerr
+        ymax = y + yerr
+    elif len(yerr) == 2:
+        ymin = yerr[0] 
+        ymax = yerr[1]
+    ax.plot(x, y, color=color)
+    ax.fill_between(x, ymax, ymin, color=color, alpha=alpha_fill)
+
 
 
 def binner(dat, noBins):
@@ -108,16 +186,16 @@ def collectDATA(List, FREQ, argv):
         F = 'FAS_dist_DWN_'+str(FREQ)+'.txt'
     else:
         F = 'FAS_dist_SRF_'+str(FREQ)+'.txt'
-    i = 0
-    for f in List:
-        if i > 0:
-            OUTVEC_SF = np.concatenate((OUTVEC_SF,tmp_SF), axis=1)
-            OUTVEC = np.concatenate((OUTVEC,tmp), axis=1)
-
-        DAT = np.loadtxt('/Volumes/J_Holt_HDD/MRes/Modules/Thesis/Data/'+f+'/'+F)
+   
+    for i in range(0, int(len(List))):
+        #if i > 1:
+            #OUTVEC_SF = np.concatenate((OUTVEC_SF,tmp_SF), axis=1)
+            #OUTVEC = np.concatenate((OUTVEC,tmp), axis=1)
+        f = str(List[i])
+        DAT = np.loadtxt('/media/james/J_Holt_HDD/MRes/Modules/Thesis/Data/'+f+'/'+F)
 
         Mo = np.loadtxt(
-        '/Volumes/J_Holt_HDD/MRes/Modules/Thesis/Data/'+f+'/'+'Mo.txt')
+        '/media/james/J_Holt_HDD/MRes/Modules/Thesis/Data/'+f+'/'+'Mo.txt')
         SF = FASscaler(FREQ, 7, Mo)
         tmp_SF = np.array([(DAT[0]*SF), (DAT[1])])
 
@@ -126,8 +204,13 @@ def collectDATA(List, FREQ, argv):
         if i == 0:
             OUTVEC_SF = tmp_SF
             OUTVEC = tmp
-
-        i += 1
+            #print('Beginning with {0} length {1}'.format(f, len(tmp[1])))
+        if i > 0:
+            OUTVEC_SF = np.concatenate((OUTVEC_SF,tmp_SF), axis=1)
+            OUTVEC = np.concatenate((OUTVEC,tmp), axis=1)
+            #print('Concatenating to vector {0} length {1}'.format(f, len(tmp[1])))
+        #print('final length = {0}'.format(len(OUTVEC[1])))
+        
     return OUTVEC, OUTVEC_SF
         
 
