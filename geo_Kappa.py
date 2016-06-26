@@ -31,15 +31,15 @@ def main(argv):
     return st
 
 
-def multiQuakePlot(List, FREQ):
+def multiQuakePlot(List, FREQ, argv):
     if argv[3] == 'Downhole':
         F = 'FAS_dist_DWN_'+str(FREQ)+'.txt'
     else:
         F = 'FAS_dist_SRF_'+str(FREQ)+'.txt'
     for f in List:
-        DAT = np.loadtxt('/media/james/J_Holt_HDD/MRes/Modules/Thesis/Data/'+f+'/'+F)
+        DAT = np.loadtxt('/Volumes/J_Holt_HDD/MRes/Modules/Thesis/Data/'+f+'/'+F)
         Mo = np.loadtxt(
-        '/media/james/J_Holt_HDD/MRes/Modules/Thesis/Data/'+f+'/'+'Mo.txt')
+        '/Volumes/J_Holt_HDD/MRes/Modules/Thesis/Data/'+f+'/'+'Mo.txt')
         SF = FASscaler(FREQ, 7, Mo)
         ax1 = plt.subplot(121)
         plt.ylabel('LOG10(FAS) [M/S]')
@@ -58,21 +58,23 @@ def multiQuakePlot(List, FREQ):
         plt.setp(ax2.get_xticklabels(), fontsize=14)
         ax2.set_axis_bgcolor('w')
     
-    plt.savefig('/home/james/Dropbox/MRes/Modules/Thesis/poster/FAS_'+str(FREQ)+'_HZ.pdf')
+    plt.savefig('/Users/jamesholt/Dropbox/MRes/Modules/Thesis/poster/FAS_'+str(FREQ)+'_HZ.pdf')
     
 def smooth_plotter(List, FREQ, argv):
     out, out_SF = collectDATA(List, FREQ, argv)
-    stats = binner(dat, 20):
-    dat_range = np.array([(stats[4]), (stats[5])])
-    plt.errorbars(stats[0], stats[3], dat_range)
-    
+    stats = binner(out, 20)
+    statsSF = binner(out_SF, 20)
+    dat_range = np.array([(stats[3]-stats[5]), (stats[4]-stats[3])])
+    dat_rangeSF = np.array([(statsSF[3]-statsSF[5]), (statsSF[4]-statsSF[3])])
+    plt.errorbar(stats[0]/1000, stats[3], dat_range)
+    plt.errorbar(stats[0]/1000, statsSF[3], dat_range)
     
     
 
 
 def binner(dat, noBins):
-    dat[1] = dist #distance data
-    dat[0] = data #actual data
+    dist = dat[1]  #distance data
+    data = dat[0]  #actual data
     hist = np.histogram(dist, noBins)
     bins = hist[1] 
     stats  = np.zeros([6, (int(len(bins))-1)])
@@ -91,7 +93,7 @@ def binner(dat, noBins):
         #binmax = bin1[0].max()
         #binmin = bin1[0].min()
         stats[:,i-1] = np.array(
-        [bin1[1].mean(), bin1[1].max(),bin1[1].min(),bin1[0].mean(),bin1[0].max(),bin1[0].min()]) 
+        [np.median(bin1[1]), bin1[1].max(),bin1[1].min(),np.median(bin1[0]),bin1[0].max(),bin1[0].min()]) 
     return stats 
         
             
@@ -112,12 +114,12 @@ def collectDATA(List, FREQ, argv):
             OUTVEC_SF = np.concatenate((OUTVEC_SF,tmp_SF), axis=1)
             OUTVEC = np.concatenate((OUTVEC,tmp), axis=1)
 
-        DAT = np.loadtxt('/media/james/J_Holt_HDD/MRes/Modules/Thesis/Data/'+f+'/'+F)
+        DAT = np.loadtxt('/Volumes/J_Holt_HDD/MRes/Modules/Thesis/Data/'+f+'/'+F)
 
         Mo = np.loadtxt(
-        '/media/james/J_Holt_HDD/MRes/Modules/Thesis/Data/'+f+'/'+'Mo.txt')
+        '/Volumes/J_Holt_HDD/MRes/Modules/Thesis/Data/'+f+'/'+'Mo.txt')
         SF = FASscaler(FREQ, 7, Mo)
-        tmp_SF = DAT*SF
+        tmp_SF = np.array([(DAT[0]*SF), (DAT[1])])
 
         tmp = DAT
 
