@@ -15,6 +15,23 @@ from utils import grab_file_names
 #argv[3] - surface or downhole? (eg. 'Surface' / 'Downhole')
 #-------------------------------------------------------------------------------
 
+#freq = dat[:,0]
+#FAS = dat[:,1]
+
+#plt.title(
+#'Fourier Acceleration Spectrum for Mw 6.6 Earthquake\n Station:GNMH08 - EW component',fontsize=16, y=1.01) 
+#plt.loglog(freq[(freq>0.04) & (freq<=10)], FAS[(freq>0.04)&(freq<=10)], 'b-')
+#plt.xlabel('FREQUENCY [HZ]',fontsize=14)
+#plt.ylabel('FAS [M/S]',fontsize=14)
+#plt.savefig(
+#'/home/james/Dropbox/MRes/Modules/Thesis/poster/FAS.pdf')
+#plt.close()
+
+
+
+
+
+
 def main(argv):
     
     st = streamBuild(argv[1], argv[2]) #load in data stream
