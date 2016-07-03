@@ -5,6 +5,7 @@ import matplotlib.lines as mlines
 from utils import grab_file_names
 import scipy.signal as sg
 import glob
+import subprocess
 
 
 
@@ -33,8 +34,28 @@ import glob
 
 
 
-def main(argv):
     
+
+path = "/media/james/J_Holt_HDD/MRes/Modules/Thesis/Data/"
+List = glob.glob(path+'*.kik')
+argv = ['l','o','l','o']
+for i in range(0, int(len(List))):
+    argv = argvswitcher(argv, List[i])
+    FASlist = listmaker(argv)
+    print('Switched to {0}'.format(argv[1]))
+    st = Freqy(FASlist, argv, 'smooth')
+    del st
+
+def argvswitcher(argv, FolderPath):
+    argv[1] = str(FolderPath+'/')
+    db = glob.glob(argv[1]+'*complete*.txt') # find the db file automatically
+    argv[2] = db[0] 
+    
+    return argv
+
+
+def main(argv):
+    print('Loading data stream')
     st = streamBuild(argv[1], argv[2]) #load in data stream
     s_pick = S_picker(st) #pick the S-wave arrivals
     s_window(st, s_pick) #calculate the positions of window
@@ -43,36 +64,60 @@ def main(argv):
     print("Generating FAS.")
     FASmaker(st, argv)
     num = [0.3, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-    #for i in range(0, int(len(num))):
-        
-    #    freqPicker(st, num[i], argv)
-    #argv[3] = 'Surface'
+    argv[3] = 'Downhole'    
     for i in range(0, int(len(num))):
         
-        argv = freqPicker(st, num[i], argv)
+        freqPicker(st, num[i], argv, 'raw')
+    argv[3] = 'Surface'
+    for i in range(0, int(len(num))):
+        
+        freqPicker(st, num[i], argv, 'raw')
 
     return st
 
 
+def correctSpectrum(st, n, alpha, a, Qo):
+    freq = st[n].stats.FAS.Frequency
+    dat = st[n].stats.FAS.Spectrum
+    R = st[n].stats.distance
+    
+    model = ( R**(-1*alpha) ) * ( (np.pi*freq*R/1000) / ( 3500 * Qo * (freq**a) ) )
+    
+    dat = dat / model
+        
 
-def Freqy(List, argv):
+
+
+def Freqy(List, argv, raw_smooth):
+    print('Loading data stream')
     st = streamBuild(argv[1], argv[2])
+    print("Loading FAS into stream.")
     for i in range(0, int(len(List))):
         FAS = np.loadtxt(List[i])
         st[i].stats["FAS"] = {}
         st[i].stats["FAS"]["Spectrum"] = FAS[:,1]
         st[i].stats["FAS"]["Frequency"] = FAS[:,0]
-       ls
+    print('Picking data for {0} FAS'.format(raw_smooth))
+    num = [0.3, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+    argv[3] = 'Downhole'    
+    for i in range(0, int(len(num))):
+        
+        freqPicker(st, num[i], argv, raw_smooth)
+    argv[3] = 'Surface'
+    for i in range(0, int(len(num))):
+        
+        freqPicker(st, num[i], argv, raw_smooth)
+    
     return st
 
 
-def listmaker():
-    List = glob.glob('*.EW1.FAS')
-    List += glob.glob('*.NS1.FAS')
-    List += glob.glob('*.UD1.FAS')
-    List += glob.glob('*.EW2.FAS')
-    List += glob.glob('*.NS2.FAS')
-    List += glob.glob('*.UD2.FAS')
+def listmaker(argv):
+    List = glob.glob(str(argv[1])+'*.EW1.FAS')
+    List += glob.glob(str(argv[1])+'*.NS1.FAS')
+    List += glob.glob(str(argv[1])+'*.UD1.FAS')
+    List += glob.glob(str(argv[1])+'*.EW2.FAS')
+    List += glob.glob(str(argv[1])+'*.NS2.FAS')
+    List += glob.glob(str(argv[1])+'*.UD2.FAS')
     return List
 
 def multiQuakePlot(List, FREQ, argv, on_off):
@@ -81,10 +126,10 @@ def multiQuakePlot(List, FREQ, argv, on_off):
     else:
         F = 'FAS_dist_SRF_'+str(FREQ)+'.txt'
     for f in List:
-        DAT = np.loadtxt('/Volumes/J_Holt_HDD/MRes/Modules/Thesis/Data/'+f+'/'+F)
+        DAT = np.loadtxt('/media/james/J_Holt_HDD/MRes/Modules/Thesis/Data/'+f+'/'+F)
         #print(len(DAT[1]))
         Mo = np.loadtxt(
-        '/Volumes/J_Holt_HDD/MRes/Modules/Thesis/Data/'+f+'/'+'Mo.txt')
+        '/media/james/J_Holt_HDD/MRes/Modules/Thesis/Data/'+f+'/'+'Mo.txt')
         SF = FASscaler(FREQ, 7, Mo)
         ax1 = plt.subplot(121)
         plt.ylabel('FAS [M/S]')
@@ -113,18 +158,18 @@ def multiQuakePlot(List, FREQ, argv, on_off):
     else:
         if argv[3] == 'Downhole':
             plt.savefig(
-            '/Users/jamesholt/Dropbox/MRes/Modules/Thesis/poster/FAS_DWN_'+str(FREQ)+'_HZ.pdf')
+            '/home/james/james/Dropbox/MRes/Modules/Thesis/poster/FAS_DWN_'+str(FREQ)+'_HZ.pdf')
             plt.close() #DONT FORGET TO CLOSE THE PLOT IF SAVING FIGURES IN BATCH!!num
         else:
             plt.savefig(
-            '/Users/jamesholt/Dropbox/MRes/Modules/Thesis/poster/FAS_SRF_'+str(FREQ)+'_HZ.pdf')
+            '/home/james/Dropbox/MRes/Modules/Thesis/poster/FAS_SRF_'+str(FREQ)+'_HZ.pdf')
             plt.close()
 
 
 
-def smooth_plotter(List, FREQ, binNo, argv, on_off):
+def smooth_plotter(List, FREQ, binNo, argv, on_off, raw_smooth):
     #collect all the data into one vector for scaled and not scaled data
-    out, out_SF = collectDATA(List, FREQ, argv) 
+    out, out_SF = collectDATA(List, FREQ, argv, raw_smooth) 
     #bin the data appropriately, include information about the data variance
     stats = binner(out, binNo)
     statsSF = binner(out_SF, binNo)
@@ -168,13 +213,13 @@ def smooth_plotter(List, FREQ, binNo, argv, on_off):
     else:
         if argv[3] == 'Downhole':
             plt.savefig(
-            '/Users/jamesholt/Dropbox/MRes/Modules/Thesis/poster/smooth_FAS_DWN_'+str(
+            '/home/james/Dropbox/MRes/Modules/Thesis/poster/smooth_FAS_DWN_'+str(
             FREQ)+'_HZ_bins='+str(binNo)+'.pdf')
             plt.close()
             
         else:
             plt.savefig(
-            '//Users/jamesholt/Dropbox/MRes/Modules/Thesis/poster/smooth_FAS_SRF_'+str(
+            '/home/james/Dropbox/MRes/Modules/Thesis/poster/smooth_FAS_SRF_'+str(
              FREQ)+'_HZ_bins='+str(binNo)+'.pdf')
             plt.close()
 
@@ -232,21 +277,27 @@ def binner(dat, noBins):
     
 
 
-def collectDATA(List, FREQ, argv):
-    if argv[3] == 'Downhole':
-        F = 'FAS_dist_DWN_'+str(FREQ)+'.txt'
+def collectDATA(List, FREQ, argv, raw_smooth):
+    if raw_smooth == 'smooth':
+        if argv[3] == 'Downhole':
+            F = 'FAS_dist_DWNs_'+str(FREQ)+'.txt'
+        else:
+            F = 'FAS_dist_SRFs_'+str(FREQ)+'.txt'
     else:
-        F = 'FAS_dist_SRF_'+str(FREQ)+'.txt'
+        if argv[3] == 'Downhole':
+            F = 'FAS_dist_DWN_'+str(FREQ)+'.txt'
+        else:
+            F = 'FAS_dist_SRF_'+str(FREQ)+'.txt'
    
     for i in range(0, int(len(List))):
         #if i > 1:
             #OUTVEC_SF = np.concatenate((OUTVEC_SF,tmp_SF), axis=1)
             #OUTVEC = np.concatenate((OUTVEC,tmp), axis=1)
         f = str(List[i])
-        DAT = np.loadtxt('/Volumes/J_Holt_HDD/MRes/Modules/Thesis/Data/'+f+'/'+F)
+        DAT = np.loadtxt('/media/james/J_Holt_HDD/MRes/Modules/Thesis/Data/'+f+'/'+F)
 
         Mo = np.loadtxt(
-        '/Volumes/J_Holt_HDD/MRes/Modules/Thesis/Data/'+f+'/'+'Mo.txt')
+        '/media/james/J_Holt_HDD/MRes/Modules/Thesis/Data/'+f+'/'+'Mo.txt')
         SF = FASscaler(FREQ, 7, Mo)
         tmp_SF = np.array([(DAT[0]*SF), (DAT[1])])
 
@@ -313,7 +364,7 @@ def idealMo(momentMAG):
     Mo = 10**( ( momentMAG*1.5 ) + (6.03*1.5) )
     return Mo
 
-def freqPicker(st, FREQ, argv):
+def freqPicker(st, FREQ, argv, raw_smooth):
 
     halfst = int(len(st)/2)
     group = int(len(st)/6)
@@ -335,15 +386,26 @@ def freqPicker(st, FREQ, argv):
             d = st[i+halfst].stats.distance
 
         triFAS = geoMean(FASew, FASns, FASud)
+        
+        if raw_smooth == 'smooth':
+            triFAS == sg.savgol_filter(triFAS, 101, 3)
+
         nearest = find_nearest(freq, FREQ)    
         where = np.where(freq == nearest)
 
         value[i] = triFAS[where]       
         dist[i] = d
-    if argv[3] == 'Downhole':
-        np.savetxt((argv[1]+"/FAS_dist_DWN_"+str(FREQ)+".txt"), (value, dist))
-    else: 
-        np.savetxt((argv[1]+"/FAS_dist_SRF_"+str(FREQ)+".txt"), (value, dist))
+    if raw_smooth == 'smooth':
+        if argv[3] == 'Downhole':
+            np.savetxt((argv[1]+"/FAS_dist_DWNs_"+str(FREQ)+".txt"), (value, dist))
+        else: 
+            np.savetxt((argv[1]+"/FAS_dist_SRFs_"+str(FREQ)+".txt"), (value, dist))
+
+    else:
+        if argv[3] == 'Downhole':
+            np.savetxt((argv[1]+"/FAS_dist_DWN_"+str(FREQ)+".txt"), (value, dist))
+        else: 
+            np.savetxt((argv[1]+"/FAS_dist_SRF_"+str(FREQ)+".txt"), (value, dist))
 
 def find_nearest(array,value):
     idx = (np.abs(array-value)).argmin()
@@ -372,13 +434,13 @@ def geoMean(file1, file2, file3):
 
 
 
-def calcFAS(st, i):
-    
-    n = len(st[i].data) #length of the signal
+def calcFAS(st, sdata, i):
+    #sdata must be in real units...
+    n = len(sdata) #length of the signal
     freq = np.fft.rfftfreq(n, st[i].stats.delta) #calculate frequencies 
     wind = np.blackman(n) #blackman window to reduce spectral leaks
     #calculate fas - rfft because real signals have hermitian symmetry.
-    fas = np.abs(np.fft.rfft(st[i].data*st[i].stats.calib*wind)) / (n/2) 
+    fas = np.abs(np.fft.rfft(sdata*wind)) / (n/2) 
     FAS = [freq[3:int(len(freq)-1)], fas[3:int(len(freq)-1)]] 
     return np.transpose(FAS)
 
@@ -395,15 +457,28 @@ def streamBuild(path,db):
         st[i].stats["coordinates"]["longitude"] = st[i].stats.knet.stlo
         st[i].stats["elevation"] = st[i].stats.knet.stel
     
-    datB = np.loadtxt(path+db, skiprows=1)
+    datB = np.loadtxt(db, skiprows=1)
     datB = datB[:,8] #rjb
     
     for i in range(0, len(datB)):
         st[i].stats["distance"] = datB[i]*1000 #dist in meters
     st.detrend()
     
+    st = channelForcer(st) #force channels to be correct 
     return st
 
+def channelForcer(st):
+    hlfST = int(len(st)/2) #length of half the stream size
+    group = int(len(st)/6) #1/6 the length of the stream size
+
+    for i in range(0, group):
+        st[i].stats.channel = 'EW1'
+        st[i+group].stats.channel = 'NS1'
+        st[i+group*2].stats.channel = 'UD1'
+        st[i+hlfST].stats.channel = 'EW2'
+        st[i+hlfST+group].stats.channel = 'NS2'
+        st[i+hlfST+group*2].stats.channel = 'UD2'
+    return st
 
 
 
