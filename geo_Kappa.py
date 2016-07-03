@@ -3,7 +3,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.lines as mlines
 from utils import grab_file_names
-
+import scipy.signal as sg
+import glob
 
 
 
@@ -25,12 +26,37 @@ def main(argv):
     print("Generating FAS.")
     FASmaker(st, argv)
     num = [0.3, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+    #for i in range(0, int(len(num))):
+        
+    #    freqPicker(st, num[i], argv)
+    #argv[3] = 'Surface'
     for i in range(0, int(len(num))):
         
-        freqPicker(st, num[i], argv)
+        argv = freqPicker(st, num[i], argv)
 
     return st
 
+
+
+def Freqy(List, argv):
+    st = streamBuild(argv[1], argv[2])
+    for i in range(0, int(len(List))):
+        FAS = np.loadtxt(List[i])
+        st[i].stats["FAS"] = {}
+        st[i].stats["FAS"]["Spectrum"] = FAS[:,1]
+        st[i].stats["FAS"]["Frequency"] = FAS[:,0]
+       ls
+    return st
+
+
+def listmaker():
+    List = glob.glob('*.EW1.FAS')
+    List += glob.glob('*.NS1.FAS')
+    List += glob.glob('*.UD1.FAS')
+    List += glob.glob('*.EW2.FAS')
+    List += glob.glob('*.NS2.FAS')
+    List += glob.glob('*.UD2.FAS')
+    return List
 
 def multiQuakePlot(List, FREQ, argv, on_off):
     if argv[3] == 'Downhole':
@@ -38,14 +64,14 @@ def multiQuakePlot(List, FREQ, argv, on_off):
     else:
         F = 'FAS_dist_SRF_'+str(FREQ)+'.txt'
     for f in List:
-        DAT = np.loadtxt('/media/james/J_Holt_HDD/MRes/Modules/Thesis/Data/'+f+'/'+F)
+        DAT = np.loadtxt('/Volumes/J_Holt_HDD/MRes/Modules/Thesis/Data/'+f+'/'+F)
         #print(len(DAT[1]))
         Mo = np.loadtxt(
-        '/media/james/J_Holt_HDD/MRes/Modules/Thesis/Data/'+f+'/'+'Mo.txt')
+        '/Volumes/J_Holt_HDD/MRes/Modules/Thesis/Data/'+f+'/'+'Mo.txt')
         SF = FASscaler(FREQ, 7, Mo)
         ax1 = plt.subplot(121)
-        plt.ylabel('LOG10(FAS) [M/S]')
-        plt.xlabel('LOG10(RJB) [KM]')
+        plt.ylabel('FAS [M/S]')
+        plt.xlabel('RJB [KM]')
         plt.loglog(DAT[1]/1000, DAT[0],'.')
         plt.setp(ax1.get_xticklabels(), fontsize=14)
         plt.setp(ax1.get_yticklabels(), fontsize=14)
@@ -60,7 +86,7 @@ def multiQuakePlot(List, FREQ, argv, on_off):
             FREQ)+' HZ Raw [left] and Shifted to Mw 7 [right] : Surface', fontsize=16)
         ax2 = plt.subplot(122, sharex = ax1, sharey=ax1)
         plt.loglog(DAT[1]/1000, DAT[0]*SF,'.')
-        plt.xlabel('LOG10(RJB) [KM]')
+        plt.xlabel('RJB [KM]')
         plt.setp(ax2.get_yticklabels(), visible=False)
         plt.setp(ax2.get_xticklabels(), fontsize=14)
         ax2.set_axis_bgcolor('w')
@@ -70,11 +96,11 @@ def multiQuakePlot(List, FREQ, argv, on_off):
     else:
         if argv[3] == 'Downhole':
             plt.savefig(
-            '/home/james/Dropbox/MRes/Modules/Thesis/poster/FAS_DWN_'+str(FREQ)+'_HZ.pdf')
+            '/Users/jamesholt/Dropbox/MRes/Modules/Thesis/poster/FAS_DWN_'+str(FREQ)+'_HZ.pdf')
             plt.close() #DONT FORGET TO CLOSE THE PLOT IF SAVING FIGURES IN BATCH!!num
         else:
             plt.savefig(
-            '/home/james/Dropbox/MRes/Modules/Thesis/poster/FAS_SRF_'+str(FREQ)+'_HZ.pdf')
+            '/Users/jamesholt/Dropbox/MRes/Modules/Thesis/poster/FAS_SRF_'+str(FREQ)+'_HZ.pdf')
             plt.close()
 
 
@@ -87,12 +113,12 @@ def smooth_plotter(List, FREQ, binNo, argv, on_off):
     statsSF = binner(out_SF, binNo)
     #calculate the difference between the max/min and median points for variance plot
     #(errorbars)
-    dat_range = np.array([(stats[3]-stats[5]), (stats[4]-stats[3])])
-    dat_rangeSF = np.array([(statsSF[3]-statsSF[5]), (statsSF[4]-statsSF[3])])
+    dat_range = np.array([(stats[5]), (stats[5])])
+    dat_rangeSF = np.array([(statsSF[5]), (statsSF[5])])
     #plot the log of FAS vs distance for binned data
-    plt.semilogy(
+    plt.plot(
     stats[0]/1000, stats[3], 'rs', markersize=5, alpha = 0.7, label = 'Raw Data' )
-    plt.semilogy(
+    plt.plot(
     stats[0]/1000, statsSF[3], 'bs', markersize=5, label = 'Shifted to Mw 7')
     red_sq = mlines.Line2D([], [], color='red', marker='s',
                           markersize=15, label='Raw Data')   
@@ -125,13 +151,13 @@ def smooth_plotter(List, FREQ, binNo, argv, on_off):
     else:
         if argv[3] == 'Downhole':
             plt.savefig(
-            '/home/james/Dropbox/MRes/Modules/Thesis/poster/smooth_FAS_DWN_'+str(
+            '/Users/jamesholt/Dropbox/MRes/Modules/Thesis/poster/smooth_FAS_DWN_'+str(
             FREQ)+'_HZ_bins='+str(binNo)+'.pdf')
             plt.close()
             
         else:
             plt.savefig(
-            '/home/james/Dropbox/MRes/Modules/Thesis/poster/smooth_FAS_SRF_'+str(
+            '//Users/jamesholt/Dropbox/MRes/Modules/Thesis/poster/smooth_FAS_SRF_'+str(
              FREQ)+'_HZ_bins='+str(binNo)+'.pdf')
             plt.close()
 
@@ -157,6 +183,7 @@ def binner(dat, noBins):
     bins = hist[1] 
     stats  = np.zeros([6, (int(len(bins))-1)])
     
+    
     for i in range(1, int(len(bins))):
         if i == 1:
             bin1 = np.array([ data[dist < bins[i]], dist[dist < bins[i]] ])
@@ -170,8 +197,15 @@ def binner(dat, noBins):
         #meanpt = bin1[0].mean()
         #binmax = bin1[0].max()
         #binmin = bin1[0].min()
+        #stats[:,i-1] = np.array(
+        #[np.median(bin1[1]), bin1[1].max(),bin1[1].min(),np.mean(bin1[0]),bin1[0].max(),bin1[0].min()]) 
+
+
+        meanbin = np.mean(np.log10(bin1[0]))
+        varbin = np.sum(((np.log10(bin1[0])-meanbin)**2))/len(bin1[0])
+        std = varbin**(1/2)
         stats[:,i-1] = np.array(
-        [np.median(bin1[1]), bin1[1].max(),bin1[1].min(),np.median(bin1[0]),bin1[0].max(),bin1[0].min()]) 
+        [np.median(bin1[1]), bin1[1].max(),bin1[1].min(),meanbin,varbin,std]) 
     return stats 
         
             
@@ -192,10 +226,10 @@ def collectDATA(List, FREQ, argv):
             #OUTVEC_SF = np.concatenate((OUTVEC_SF,tmp_SF), axis=1)
             #OUTVEC = np.concatenate((OUTVEC,tmp), axis=1)
         f = str(List[i])
-        DAT = np.loadtxt('/media/james/J_Holt_HDD/MRes/Modules/Thesis/Data/'+f+'/'+F)
+        DAT = np.loadtxt('/Volumes/J_Holt_HDD/MRes/Modules/Thesis/Data/'+f+'/'+F)
 
         Mo = np.loadtxt(
-        '/media/james/J_Holt_HDD/MRes/Modules/Thesis/Data/'+f+'/'+'Mo.txt')
+        '/Volumes/J_Holt_HDD/MRes/Modules/Thesis/Data/'+f+'/'+'Mo.txt')
         SF = FASscaler(FREQ, 7, Mo)
         tmp_SF = np.array([(DAT[0]*SF), (DAT[1])])
 
@@ -213,8 +247,22 @@ def collectDATA(List, FREQ, argv):
         
     return OUTVEC, OUTVEC_SF
         
-
-        
+def histogram(List, FREQ, argv, binwidth):
+    dat, datSF = collectDATA(List, FREQ, argv)
+    plt.figure(figsize=(14, 8))
+    plt.suptitle('Histogram of FAS before Brune source correction \n [left] and after [right] for ' +str(FREQ)+ 'Hz :' + str(argv[3]), fontsize=16, y=0.99)
+    
+    plt.subplot(121)
+    plt.xlabel('FAS')
+    plt.ylabel('No of Occurrences')
+    
+    plt.hist(np.hstack(dat[0]), bins=np.arange(min(dat[0]), max(dat[0]) + binwidth, binwidth))
+    plt.subplot(122)
+    plt.xlabel('FAS')
+    
+    plt.hist(np.hstack(datSF[0]), bins=np.arange(min(datSF[0]), max(datSF[0]) + binwidth, binwidth))
+   
+    plt.show()    
         
 
 
@@ -236,14 +284,16 @@ def FASscaler(f, Mw, MoREAL):
     magnitude and the real event. Requres input of the real Seismic Moment, 
     and frequency.  """   
     Mo = idealMo(Mw)
-    ratio = (Mo * (1 +(f/(MoREAL**(-1/3)))**2)) / (
-    MoREAL * (1 +(f/(Mo**(-1/3)))**2))
+    C = (0.4906 * 3500)
+    fcReal = C*(10E6/MoREAL)**(1/3)
+    fc = C*(10E6/Mo)**(1/3)
+    ratio = (Mo*(1+(f/fcReal)**2))/(MoREAL * (1+(f/fc)**2))
     return ratio
 
 
 def idealMo(momentMAG): 
     """Using Kanamori's formula, calculates the ideal Mo for a given Mw. """ 
-    Mo = 10**( ( momentMAG*1.5 ) + (6.06*1.5) )
+    Mo = 10**( ( momentMAG*1.5 ) + (6.03*1.5) )
     return Mo
 
 def freqPicker(st, FREQ, argv):
@@ -305,18 +355,14 @@ def geoMean(file1, file2, file3):
 
 
 
-def calcFAS(st, tseries, i):
-    Fs = (1/st[i].stats.delta)
-    n = len(tseries) #length of the signal
-    k = np.arange(n) #build an array based on length of signal
-    T = n/Fs #sampling time delta
-    frq = k/T #two sides frequency range
-    freq = frq[range(int(n/2))] #one side frequency range
+def calcFAS(st, i):
     
-    wind = np.blackman(len(tseries)) #blackman window to reduce spectral leaks
-    Y = np.fft.fft(tseries*wind) / n
-    Z = Y[range(int(n/2))] #one side amplitude range
-    FAS = [freq, abs(Z)*2 ] #multipy by factor of two to get whole amplitude.
+    n = len(st[i].data) #length of the signal
+    freq = np.fft.rfftfreq(n, st[i].stats.delta) #calculate frequencies 
+    wind = np.blackman(n) #blackman window to reduce spectral leaks
+    #calculate fas - rfft because real signals have hermitian symmetry.
+    fas = np.abs(np.fft.rfft(st[i].data*st[i].stats.calib*wind)) / (n/2) 
+    FAS = [freq[3:int(len(freq)-1)], fas[3:int(len(freq)-1)]] 
     return np.transpose(FAS)
 
 def streamBuild(path,db):
