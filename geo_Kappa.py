@@ -36,7 +36,7 @@ import subprocess
 
     
 
-path = "/media/james/J_Holt_HDD/MRes/Modules/Thesis/Data/"
+path = "/Volumes/J_Holt_HDD/MRes/Modules/Thesis/Data/"
 List = glob.glob(path+'*.kik')
 argv = ['l','o','l','o']
 for i in range(0, int(len(List))):
@@ -81,7 +81,7 @@ def correctSpectrum(st, n, alpha, a, Qo):
     dat = st[n].stats.FAS.Spectrum
     R = st[n].stats.distance
     
-    model = ( R**(-1*alpha) ) * ( (np.pi*freq*R/1000) / ( 3500 * Qo * (freq**a) ) )
+    model = ( R**(-1*alpha) ) * ( (np.pi*freq*R) / ( 3500 * Qo * (freq**a) ) )
     
     dat = dat / model
         
@@ -126,10 +126,10 @@ def multiQuakePlot(List, FREQ, argv, on_off):
     else:
         F = 'FAS_dist_SRF_'+str(FREQ)+'.txt'
     for f in List:
-        DAT = np.loadtxt('/media/james/J_Holt_HDD/MRes/Modules/Thesis/Data/'+f+'/'+F)
+        DAT = np.loadtxt('/Volumes/J_Holt_HDD/MRes/Modules/Thesis/Data/'+f+'/'+F)
         #print(len(DAT[1]))
         Mo = np.loadtxt(
-        '/media/james/J_Holt_HDD/MRes/Modules/Thesis/Data/'+f+'/'+'Mo.txt')
+        '/Volumes/J_Holt_HDD/MRes/Modules/Thesis/Data/'+f+'/'+'Mo.txt')
         SF = FASscaler(FREQ, 7, Mo)
         ax1 = plt.subplot(121)
         plt.ylabel('FAS [M/S]')
@@ -158,18 +158,18 @@ def multiQuakePlot(List, FREQ, argv, on_off):
     else:
         if argv[3] == 'Downhole':
             plt.savefig(
-            '/home/james/james/Dropbox/MRes/Modules/Thesis/poster/FAS_DWN_'+str(FREQ)+'_HZ.pdf')
+            '/Users/jamesholt/Dropbox/MRes/Modules/Thesis/poster/FAS_DWN_'+str(FREQ)+'_HZ.pdf')
             plt.close() #DONT FORGET TO CLOSE THE PLOT IF SAVING FIGURES IN BATCH!!num
         else:
             plt.savefig(
-            '/home/james/Dropbox/MRes/Modules/Thesis/poster/FAS_SRF_'+str(FREQ)+'_HZ.pdf')
+            '/Users/jamesholt/Dropbox/MRes/Modules/Thesis/poster/FAS_SRF_'+str(FREQ)+'_HZ.pdf')
             plt.close()
 
 
 
-def smooth_plotter(List, FREQ, binNo, argv, on_off, raw_smooth):
+def smooth_plotter(List, FREQ, binNo, argv, on_off, raw_smooth, max_dist):
     #collect all the data into one vector for scaled and not scaled data
-    out, out_SF = collectDATA(List, FREQ, argv, raw_smooth) 
+    out, out_SF = collectDATA(List, FREQ, argv, max_dist, raw_smooth) 
     #bin the data appropriately, include information about the data variance
     stats = binner(out, binNo)
     statsSF = binner(out_SF, binNo)
@@ -213,13 +213,13 @@ def smooth_plotter(List, FREQ, binNo, argv, on_off, raw_smooth):
     else:
         if argv[3] == 'Downhole':
             plt.savefig(
-            '/home/james/Dropbox/MRes/Modules/Thesis/poster/smooth_FAS_DWN_'+str(
+            '/Users/jamesholt/Dropbox/MRes/Modules/Thesis/poster/smooth_FAS_DWN_'+str(
             FREQ)+'_HZ_bins='+str(binNo)+'.pdf')
             plt.close()
             
         else:
             plt.savefig(
-            '/home/james/Dropbox/MRes/Modules/Thesis/poster/smooth_FAS_SRF_'+str(
+            '/Users/jamesholt/Dropbox/MRes/Modules/Thesis/poster/smooth_FAS_SRF_'+str(
              FREQ)+'_HZ_bins='+str(binNo)+'.pdf')
             plt.close()
 
@@ -277,7 +277,7 @@ def binner(dat, noBins):
     
 
 
-def collectDATA(List, FREQ, argv, raw_smooth):
+def collectDATA(List, FREQ, argv, raw_smooth, max_dist):
     if raw_smooth == 'smooth':
         if argv[3] == 'Downhole':
             F = 'FAS_dist_DWNs_'+str(FREQ)+'.txt'
@@ -294,10 +294,10 @@ def collectDATA(List, FREQ, argv, raw_smooth):
             #OUTVEC_SF = np.concatenate((OUTVEC_SF,tmp_SF), axis=1)
             #OUTVEC = np.concatenate((OUTVEC,tmp), axis=1)
         f = str(List[i])
-        DAT = np.loadtxt('/media/james/J_Holt_HDD/MRes/Modules/Thesis/Data/'+f+'/'+F)
+        DAT = np.loadtxt('/Volumes/J_Holt_HDD/MRes/Modules/Thesis/Data/'+f+'/'+F)
 
         Mo = np.loadtxt(
-        '/media/james/J_Holt_HDD/MRes/Modules/Thesis/Data/'+f+'/'+'Mo.txt')
+        '/Volumes/J_Holt_HDD/MRes/Modules/Thesis/Data/'+f+'/'+'Mo.txt')
         SF = FASscaler(FREQ, 7, Mo)
         tmp_SF = np.array([(DAT[0]*SF), (DAT[1])])
 
@@ -312,7 +312,16 @@ def collectDATA(List, FREQ, argv, raw_smooth):
             OUTVEC = np.concatenate((OUTVEC,tmp), axis=1)
             #print('Concatenating to vector {0} length {1}'.format(f, len(tmp[1])))
         #print('final length = {0}'.format(len(OUTVEC[1])))
-        
+    
+    dist = OUTVEC[1]
+    dat = OUTVEC[0]
+    datSF = OUTVEC_SF[0]
+
+    dist = dist[np.where(dist<=int(max_dist))]
+    dat = dat[np.where(dist<=int(max_dist))]
+    datSF = dat[np.where(dist<=int(max_dist))]
+    OUTVEC = np.array([dat, dist])
+    OUTVEC_SF = np.array([datSF, dist])
     return OUTVEC, OUTVEC_SF
         
 def histogram(List, FREQ, argv, binwidth):
