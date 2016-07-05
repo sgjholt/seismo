@@ -33,15 +33,15 @@ import subprocess
 
 
 
-#path = "/Volumes/J_Holt_HDD/MRes/Modules/Thesis/Data/"
+path = "/Volumes/J_Holt_HDD/MRes/Modules/Thesis/Data/"
 def SimuSearch(simulation_len, path):
     List = glob.glob(path+'*.kik')
-    alphas = np.linspace(0.1, 1, simulation_len) #generate range of alphas
-    Qos = np.linspace(1, 1000, simulation_len) #generate range of Qos
-    As = np.linspace(0.1, 1, simulation_len) #generate range of a
-    pickals = np.random.randint(0, simulation_len, (1,int(len(alphas))))
-    pickQos = np.random.randint(0, simulation_len, (1,int(len(alphas))))
-    pickAs = np.random.randint(0, simulation_len, (1,int(len(alphas))))
+    alphas = np.linspace(0.1, 1, 100) #generate range of alphas
+    Qos = np.linspace(1, 1000, 1000) #generate range of Qos
+    As = np.linspace(0.1, 1, 100) #generate range of a
+    pickals = np.random.randint(99, size=(1,simulation_len))
+    pickQos = np.random.randint(999, size=(1,simulation_len))
+    pickAs = np.random.randint(99, size=(1,simulation_len))
     for n in range(0, int(simulation_len)):
         alpha = alphas[int(pickals[:,n])]
         Qo = Qos[int(pickQos[:,n])]
@@ -55,7 +55,7 @@ def SimuSearch(simulation_len, path):
         with open(name, 'ab') as f:
             np.savetxt(f, np.c_[alpha, a, Qo], fmt ='%10.5f')
         argv = ['l','o','l','o']
-        for i in range(0, 2):
+        for i in range(0, int(len(List))):
             argv = argvswitcher(argv, List[i])
             FASlist = listmaker(argv)
             print('Switched to {0}'.format(argv[1]))
@@ -72,7 +72,7 @@ def argvswitcher(argv, FolderPath):
 def correctSpectrum(FASList, argv, alpha, a, Qo, name):
     Rs = np.loadtxt(str(argv[2]), skiprows=1)
     Rs = Rs[:,8] 
-    for n in range(0, int(len(st))):
+    for n in range(0, int(len(FASList))):
         R = Rs[n]
         FAS = np.loadtxt(FASList[n])
         freq = FAS[:,0]
@@ -87,8 +87,6 @@ def correctSpectrum(FASList, argv, alpha, a, Qo, name):
         m, c, r, p, std =  sta.linregress(
         freq[(freq>=1)&(freq<=20)], logdatO[(freq>=1)&(freq<=20)])
     
-       
-          
         with open(name, 'ab') as f:
             np.savetxt(f, np.c_[m, c, r, std], fmt='%10.8f')
 
