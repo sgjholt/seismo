@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import matplotlib.lines as mlines
 from utils import grab_file_names
 import scipy.signal as sg
+import scipy.stats as sta
 import glob
 import subprocess
 
@@ -32,19 +33,34 @@ import subprocess
 
 
 
-
-
-    
-
 #path = "/Volumes/J_Holt_HDD/MRes/Modules/Thesis/Data/"
-#argv = ['l','o','l','o']
-#List = glob.glob(path+'*.kik')
-#for i in range(0, int(len(List))):
-#    argv = argvswitcher(argv, List[i])
-#    FASlist = listmaker(argv)
-#    print('Switched to {0}'.format(argv[1]))
-#    st = Freqy(FASlist, argv, 'smooth')
-#    del st
+def SimuSearch(simulation_len, path):
+    List = glob.glob(path+'*.kik')
+    alphas = np.linspace(0.1, 1, simulation_len) #generate range of alphas
+    Qos = np.linspace(1, 1000, simulation_len) #generate range of Qos
+    As = np.linspace(0.1, 1, simulation_len) #generate range of a
+    pickals = np.random.randint(0, simulation_len, (1,int(len(alphas))))
+    pickQos = np.random.randint(0, simulation_len, (1,int(len(alphas))))
+    pickAs = np.random.randint(0, simulation_len, (1,int(len(alphas))))
+    for n in range(0, int(simulation_len)):
+        alpha = alphas[int(pickals[:,n])]
+        Qo = Qos[int(pickQos[:,n])]
+        a = As[int(pickAs[:,n])]
+        print(
+        'Correcting Spectrums: variables=[alpha={0}, a={1}, Qo={2}]'.format(
+        alpha, a, Qo))
+        name = 'simulation'+str(
+        n)+'_alpha_'+str(alpha)+'_a_'+str(a)+'_Qo_'+str(Qo)+'.txt'
+        subprocess.call(['rm', str(name)])
+        with open(name, 'ab') as f:
+            np.savetxt(f, np.c_[alpha, a, Qo], fmt ='%10.5f')
+        argv = ['l','o','l','o']
+        for i in range(0, 2):
+            argv = argvswitcher(argv, List[i])
+            FASlist = listmaker(argv)
+            print('Switched to {0}'.format(argv[1]))
+            correctSpectrum(FASlist, argv, alpha, a, Qo, name)
+        
 
 def argvswitcher(argv, FolderPath):
     argv[1] = str(FolderPath+'/')
@@ -52,6 +68,29 @@ def argvswitcher(argv, FolderPath):
     argv[2] = db[0] 
     
     return argv
+
+def correctSpectrum(FASList, argv, alpha, a, Qo, name):
+    Rs = np.loadtxt(str(argv[2]), skiprows=1)
+    Rs = Rs[:,8] 
+    for n in range(0, int(len(st))):
+        R = Rs[n]
+        FAS = np.loadtxt(FASList[n])
+        freq = FAS[:,0]
+        dat = FAS[:,1]
+       
+        #freq = st[n].stats.FAS.Frequency
+        #dat = st[n].stats.FAS.Spectrum
+        #R = st[n].stats.distance
+        #calculate log of the spectrum - add the model to calculate A0 in logspace
+        logdatO = np.log(dat) + alpha*np.log(R) + (np.pi*freq*R) /  ( 3.5 * Qo *  (freq**a))
+        #take the gradent of log(A0)
+        m, c, r, p, std =  sta.linregress(
+        freq[(freq>=1)&(freq<=20)], logdatO[(freq>=1)&(freq<=20)])
+    
+       
+          
+        with open(name, 'ab') as f:
+            np.savetxt(f, np.c_[m, c, r, std], fmt='%10.8f')
 
 
 def main(argv):
@@ -76,17 +115,9 @@ def main(argv):
     return st
 
 
-def correctSpectrum(st, n, alpha, a, Qo):
-    freq = st[n].stats.FAS.Frequency
-    dat = st[n].stats.FAS.Spectrum
-    R = st[n].stats.distance
-    
-    logdatO = np.log(dat) + alpha*np.log(R) + (np.pi*freq*R) /  ( 3.5 * Qo * (freq**a))
+
         
-
-
-
-def Freqy(List, argv, raw_smooth):
+def AddSpectrumstoSt(List, argv):
     print('Loading data stream')
     st = streamBuild(argv[1], argv[2])
     print("Loading FAS into stream.")
@@ -95,6 +126,10 @@ def Freqy(List, argv, raw_smooth):
         st[i].stats["FAS"] = {}
         st[i].stats["FAS"]["Spectrum"] = FAS[:,1]
         st[i].stats["FAS"]["Frequency"] = FAS[:,0]
+    return st
+
+def Freqy(List, argv, raw_smooth):
+    st = AddSpectrumstoSt(List, argv)
     print('Picking data for {0} FAS'.format(raw_smooth))
     num = [0.3, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
     argv[3] = 'Downhole'    
