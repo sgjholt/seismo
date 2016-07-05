@@ -36,15 +36,15 @@ import subprocess
 
     
 
-path = "/Volumes/J_Holt_HDD/MRes/Modules/Thesis/Data/"
-List = glob.glob(path+'*.kik')
-argv = ['l','o','l','o']
-for i in range(0, int(len(List))):
-    argv = argvswitcher(argv, List[i])
-    FASlist = listmaker(argv)
-    print('Switched to {0}'.format(argv[1]))
-    st = Freqy(FASlist, argv, 'smooth')
-    del st
+#path = "/Volumes/J_Holt_HDD/MRes/Modules/Thesis/Data/"
+#argv = ['l','o','l','o']
+#List = glob.glob(path+'*.kik')
+#for i in range(0, int(len(List))):
+#    argv = argvswitcher(argv, List[i])
+#    FASlist = listmaker(argv)
+#    print('Switched to {0}'.format(argv[1]))
+#    st = Freqy(FASlist, argv, 'smooth')
+#    del st
 
 def argvswitcher(argv, FolderPath):
     argv[1] = str(FolderPath+'/')
@@ -81,9 +81,7 @@ def correctSpectrum(st, n, alpha, a, Qo):
     dat = st[n].stats.FAS.Spectrum
     R = st[n].stats.distance
     
-    model = ( R**(-1*alpha) ) * ( (np.pi*freq*R) / ( 3500 * Qo * (freq**a) ) )
-    
-    dat = dat / model
+    logdatO = np.log(dat) + alpha*np.log(R) + (np.pi*freq*R) /  ( 3.5 * Qo * (freq**a))
         
 
 
