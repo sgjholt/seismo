@@ -34,7 +34,8 @@ import subprocess
 
 
 path = "/Volumes/J_Holt_HDD/MRes/Modules/Thesis/Data/"
-def SimuSearch(simulation_len, path):
+def SimuSearch(simulation_len, path, srf_dwn):
+    #this block determins the parameters and rndm vars for simulation
     List = glob.glob(path+'*.kik')
     alphas = np.linspace(0.1, 1, 100) #generate range of alphas
     Qos = np.linspace(1, 1000, 1000) #generate range of Qos
@@ -42,6 +43,8 @@ def SimuSearch(simulation_len, path):
     pickals = np.random.randint(99, size=(1,simulation_len))
     pickQos = np.random.randint(999, size=(1,simulation_len))
     pickAs = np.random.randint(99, size=(1,simulation_len))
+
+    #this block loops over the number of simulations and determins model params
     for n in range(0, int(simulation_len)):
         alpha = alphas[int(pickals[:,n])]
         Qo = Qos[int(pickQos[:,n])]
@@ -49,18 +52,42 @@ def SimuSearch(simulation_len, path):
         print(
         'Correcting Spectrums: variables=[alpha={0}, a={1}, Qo={2}]'.format(
         alpha, a, Qo))
-        name = 'simulation'+str(
-        n)+'_alpha_'+str(alpha)+'_a_'+str(a)+'_Qo_'+str(Qo)+'.txt'
-        subprocess.call(['rm', str(name)])
+
+    #this block decides the name of the file to be saved and saves it
+        name  = nameMaker(alpha, a, Qo, n, srf_dwn)
         with open(name, 'ab') as f:
             np.savetxt(f, np.c_[alpha, a, Qo], fmt ='%10.5f')
-        argv = ['l','o','l','o']
+
+        #this block loops over the earthquake folders and applys correction to
+        #... the relevent spectrums (surface or borehole).
+
+        argv = ['l','o','l',str(srf_dwn)]
         for i in range(0, int(len(List))):
             argv = argvswitcher(argv, List[i])
             FASlist = listmaker(argv)
             print('Switched to {0}'.format(argv[1]))
             correctSpectrum(FASlist, argv, alpha, a, Qo, name)
+        #this block will load the files and perform some stats!
+        head = np.genfromtxt(name, max_rows=1)
+        body = np.genfromtxt(name, skip_header=True)
         
+def statisticalStuff(head, body, name):
+    ms = body[:,0]
+    stds = body[:,3]
+    
+    mStats = np.c_[np.mean(ms), np.std(ms)]
+    stdStats = np.c_[np.mean(stds), np.std(sds)]
+    
+
+def nameMaker(alpha, a, Qo, n, srf_dwn):
+    if srf_dwn == 'Downhole':
+        name = 'simulationDWN'+str(
+        n)+'_alpha_'+str(alpha)+'_a_'+str(a)+'_Qo_'+str(Qo)+'.txt'
+    if srf_dwn == 'Surface':
+        name = 'simulationSRF'+str(
+        n)+'_alpha_'+str(alpha)+'_a_'+str(a)+'_Qo_'+str(Qo)+'.txt'
+        subprocess.call(['rm', str(name)])
+    return name        
 
 def argvswitcher(argv, FolderPath):
     argv[1] = str(FolderPath+'/')
@@ -143,12 +170,16 @@ def Freqy(List, argv, raw_smooth):
 
 
 def listmaker(argv):
-    List = glob.glob(str(argv[1])+'*.EW1.FAS')
-    List += glob.glob(str(argv[1])+'*.NS1.FAS')
-    List += glob.glob(str(argv[1])+'*.UD1.FAS')
-    List += glob.glob(str(argv[1])+'*.EW2.FAS')
-    List += glob.glob(str(argv[1])+'*.NS2.FAS')
-    List += glob.glob(str(argv[1])+'*.UD2.FAS')
+    if argv[3] == 'Downhole':
+        List = glob.glob(str(argv[1])+'*.EW1.FAS')
+        List += glob.glob(str(argv[1])+'*.NS1.FAS')
+        List += glob.glob(str(argv[1])+'*.UD1.FAS')
+        print('Picked Borehole Data {0}'.format(List[0]))
+    if argv[3] == 'Surface':
+        List = glob.glob(str(argv[1])+'*.EW2.FAS')
+        List += glob.glob(str(argv[1])+'*.NS2.FAS')
+        List += glob.glob(str(argv[1])+'*.UD2.FAS')
+        print('Picked Surface Data {0}'.format(List[0]))
     return List
 
 def multiQuakePlot(List, FREQ, argv, on_off):
