@@ -35,12 +35,12 @@ import subprocess
 
 path = "/Volumes/J_Holt_HDD/MRes/Modules/Thesis/Data/"
 def SimuSearch(simulation_len, path, srf_dwn):
-    #this block determins the parameters and rndm vars for simulation
+    #this block determines the parameters and rndm vars for simulation
     List = glob.glob(path+'*.kik')
-    alphas = np.linspace(0.1, 1, 100) #generate range of alphas
+    alphas = np.linspace(0.1, 2, 200) #generate range of alphas
     Qos = np.linspace(1, 1000, 1000) #generate range of Qos
     As = np.linspace(0.1, 1, 100) #generate range of a
-    pickals = np.random.randint(99, size=(1,simulation_len))
+    pickals = np.random.randint(199, size=(1,simulation_len))
     pickQos = np.random.randint(999, size=(1,simulation_len))
     pickAs = np.random.randint(99, size=(1,simulation_len))
 
@@ -76,7 +76,7 @@ def statisticalStuff(head, body, name):
     stds = body[:,3]
     
     mStats = np.c_[np.mean(ms), np.std(ms)]
-    stdStats = np.c_[np.mean(stds), np.std(sds)]
+    stdStats = np.c_[np.mean(stds), np.std(stds)]
     
 
 def nameMaker(alpha, a, Qo, n, srf_dwn):
@@ -112,7 +112,7 @@ def correctSpectrum(FASList, argv, alpha, a, Qo, name):
         logdatO = np.log(dat) + alpha*np.log(R) + (np.pi*freq*R) /  ( 3.5 * Qo *  (freq**a))
         #take the gradent of log(A0)
         m, c, r, p, std =  sta.linregress(
-        freq[(freq>=1)&(freq<=20)], logdatO[(freq>=1)&(freq<=20)])
+        freq[(freq>=1)&(freq<=25)], logdatO[(freq>=1)&(freq<=25)])
     
         with open(name, 'ab') as f:
             np.savetxt(f, np.c_[m, c, r, std], fmt='%10.8f')

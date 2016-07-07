@@ -34,11 +34,11 @@ def main():
     
     mergedatabase()
     
-    x = 0
-    for i in range(0, len(files)):
-        x += 1
-        print('Calculating FAS {} out of {}'.format(x, len(files)))
-        FASmaker(files[i], headerfiles[i])
+    #x = 0
+    #for i in range(0, len(files)):
+    #    x += 1
+    #    print('Calculating FAS {} out of {}'.format(x, len(files)))
+    #    FASmaker(files[i], headerfiles[i])
     
     
         
@@ -63,7 +63,8 @@ def grab_file_names(path_to_folder, flag):
 
         f6 = glob(str(path_to_folder) + '*.UD2.h')
 
-        joinedFileList =  f1 + f2 + f3 + f4 + f5 + f6
+        joinedFileList=sorted(f1)+sorted(f2)+sorted(f3)+sorted(f4)+sorted(
+        f5)+sorted(f6)
 
     if flag == 1:
         f = glob(str(path_to_folder) + '*.*[0-9]')

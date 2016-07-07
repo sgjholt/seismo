@@ -50,21 +50,50 @@ def grab_file_names(path_to_folder, flag):
         joinedFileList = f
 
     if flag == 2:
-        f1 = glob(str(path_to_folder) + '*.EW1')
+        f1 = glob(str(path_to_folder) + '*.EW1.h')
 
-        f2 = glob(str(path_to_folder) + '*.NS1')
+        f2 = glob(str(path_to_folder) + '*.NS1.h')
 
-        f3 = glob(str(path_to_folder) + '*.UD1')
+        f3 = glob(str(path_to_folder) + '*.UD1.h')
 
-        f4 = glob(str(path_to_folder) + '*.EW2')
+        f4 = glob(str(path_to_folder) + '*.EW2.h')
     
-        f5 = glob(str(path_to_folder) + '*.NS2')
+        f5 = glob(str(path_to_folder) + '*.NS2.h')
 
-        f6 = glob(str(path_to_folder) + '*.UD2')
+        f6 = glob(str(path_to_folder) + '*.UD2.h')
 
-        joinedFileList =  f1 + f2 + f3 + f4 + f5 + f6
+        joinedFileList=sorted(f1)+sorted(f2)+sorted(f3)+sorted(f4)+sorted(
+        f5)+sorted(f6)
+        
+         
+        joinedFileList = [s.replace('.h', '') for s in joinedFileList]
     
     return joinedFileList
+
+
+#for name in LIST:
+#    path = name+'/'
+#    fnames = grab_file_names(path, 0)
+#    fnames = [s.replace('.h', '') for s in fnames]
+#    fnames = [s.replace('.NS1', '') for s in fnames]
+#   fnames = [s.replace('.UD1', '') for s in fnames]
+#    fnames = [s.replace('.EW1', '') for s in fnames]
+#    fnames = [s.replace('.EW2', '') for s in fnames]
+#    fnames = [s.replace('.NS2', '') for s in fnames]
+#    fnames = [s.replace('.UD2', '') for s in fnames]
+    
+#    for i in range(0, int(len(fnames)/6)):
+#        a = fnames[i]
+#        b = fnames[i+int(len(fnames)/6)]
+#        c = fnames[i+2*int(len(fnames)/6)]
+#        d = fnames[i+3*int(len(fnames)/6)]
+#        e = fnames[i+4*int(len(fnames)/6)]
+#        f = fnames[i+5*int(len(fnames)/6)]
+#        if a==b and a==c and a==d and a==e and a==f:
+#            continue
+#        else:
+#            print(path)
+#            continue
 
 def preprocessdata(f, hdr): 
     #calculate reshape factor
