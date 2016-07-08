@@ -56,6 +56,8 @@ def SimuSearch(simulation_len, path, srf_dwn):
     #this block decides the name of the file to be saved and saves it
         name  = nameMaker(alpha, a, Qo, n, srf_dwn)
         with open(name, 'ab') as f:
+            #so first row is alpha (geo_spreading exponant)
+            #, a(frequency exponant), Qo(base Q)
             np.savetxt(f, np.c_[alpha, a, Qo], fmt ='%10.5f')
 
         #this block loops over the earthquake folders and applys correction to
@@ -70,24 +72,35 @@ def SimuSearch(simulation_len, path, srf_dwn):
         #this block will load the files and perform some stats!
         head = np.genfromtxt(name, max_rows=1)
         body = np.genfromtxt(name, skip_header=True)
+        statisticalStuff(head,body,name)
         
 def statisticalStuff(head, body, name):
+    print('Performing stats on {0}'.format(name))
     ms = body[:,0]
     stds = body[:,3]
-    
-    mStats = np.c_[np.mean(ms), np.std(ms)]
-    stdStats = np.c_[np.mean(stds), np.std(stds)]
-    
+    mStats = np.array([np.mean(ms), np.std(ms), -9999])
+    stdStats = np.array([np.mean(stds), np.std(stds), -9999])
+    subprocess.call(['rm', str(name)])
+    result = np.array([head, mStats, stdStats])     
+    np.savetxt(
+    name+'.n', (head, mStats, stdStats), header='Row 1 = Simulation Params, Row 2 = Gradiant Stats (mean and std respectively) and Row 3 = Std devation stats (mean and std respectively)', fmt='%s')
 
-def nameMaker(alpha, a, Qo, n, srf_dwn):
+def nameMaker(alpha, n, srf_dwn):
     if srf_dwn == 'Downhole':
-        name = 'simulationDWN'+str(
-        n)+'_alpha_'+str(alpha)+'_a_'+str(a)+'_Qo_'+str(Qo)+'.txt'
+        name = 'simulationDWN'+str(n)+'.txt'
     if srf_dwn == 'Surface':
-        name = 'simulationSRF'+str(
-        n)+'_alpha_'+str(alpha)+'_a_'+str(a)+'_Qo_'+str(Qo)+'.txt'
+        name = 'simulationSRF'+str(n)+'.txt'
         subprocess.call(['rm', str(name)])
-    return name        
+    return name  
+
+#argv = ['l', 'o', 'l', 'o']
+#path = "/Volumes/J_Holt_HDD/MRes/Modules/Thesis/Data/"
+#LIST = glob.glob(path+'*.kik')
+#for n in range(0, int(len(LIST))):
+#    argv = argvswitcher(argv, LIST[n])
+#    print('Switched to {0}, {1}'.format(argv[2], n))
+#    st = main(argv)
+#    del st      
 
 def argvswitcher(argv, FolderPath):
     argv[1] = str(FolderPath+'/')
