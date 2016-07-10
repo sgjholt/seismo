@@ -35,11 +35,19 @@ import subprocess
 
 path = "/Volumes/J_Holt_HDD/MRes/Modules/Thesis/Data/"
 def SimuSearch(simulation_len, path, srf_dwn):
+    #open the result files for appending later
+    with open(str(srf_dwn)+'_sim_params.txt','a') as simp, open(
+    str(srf_dwn)+'_sim_stats.txt','a') as simsa:
+            simp.write("Alpha"+" "+"a"+" "+"Qo")
+            simp.write("\n")
+            simsa.write("Mav"+" "+"std(M)"+" "+"stdav"+" "+"sdt(sdt)")
+            simsa.write("\n")
     #this block determines the parameters and rndm vars for simulation
     List = glob.glob(path+'*.kik')
-    alphas = np.linspace(0.1, 2, 200) #generate range of alphas
-    Qos = np.linspace(1, 1000, 1000) #generate range of Qos
-    As = np.linspace(0.1, 1, 100) #generate range of a
+    alphas = np.linspace(0.3, 2, 200) #generate range of alphas
+    #generate range of Qos (logarithmically distributed)
+    Qos = np.logspace(np.log10(1), np.log10(1000), 1000, base=10) 
+    As = np.linspace(0, 1, 100) #generate range of a
     pickals = np.random.randint(199, size=(1,simulation_len))
     pickQos = np.random.randint(999, size=(1,simulation_len))
     pickAs = np.random.randint(99, size=(1,simulation_len))
@@ -54,7 +62,7 @@ def SimuSearch(simulation_len, path, srf_dwn):
         alpha, a, Qo))
 
     #this block decides the name of the file to be saved and saves it
-        name  = nameMaker(alpha, a, Qo, n, srf_dwn)
+        name  = nameMaker(n+1, srf_dwn)
         with open(name, 'ab') as f:
             #so first row is alpha (geo_spreading exponant)
             #, a(frequency exponant), Qo(base Q)
@@ -70,22 +78,40 @@ def SimuSearch(simulation_len, path, srf_dwn):
             print('Switched to {0}'.format(argv[1]))
             correctSpectrum(FASlist, argv, alpha, a, Qo, name)
         #this block will load the files and perform some stats!
-        head = np.genfromtxt(name, max_rows=1)
+        head = np.genfromtxt(name, max_rows=1, dtype=str)
         body = np.genfromtxt(name, skip_header=True)
-        statisticalStuff(head,body,name)
+        statisticalStuff(head,body,name,srf_dwn)
+    print('Simulation Complete')
         
-def statisticalStuff(head, body, name):
+def statisticalStuff(head, body, name, srf_dwn):
     print('Performing stats on {0}'.format(name))
     ms = body[:,0]
     stds = body[:,3]
-    mStats = np.array([np.mean(ms), np.std(ms), -9999])
-    stdStats = np.array([np.mean(stds), np.std(stds), -9999])
+   
+    #In order saves mean and stdev of m and then mean and stdev of the stdevs
+    Stats = np.array(
+    [np.mean(ms), np.std(ms), np.mean(stds), np.std(stds)], dtype=str)
     subprocess.call(['rm', str(name)])
-    result = np.array([head, mStats, stdStats])     
-    np.savetxt(
-    name+'.n', (head, mStats, stdStats), header='Row 1 = Simulation Params, Row 2 = Gradiant Stats (mean and std respectively) and Row 3 = Std devation stats (mean and std respectively)', fmt='%s')
+    with open(str(srf_dwn)+'_sim_params.txt','a') as simp, open(
+    str(srf_dwn)+'_sim_stats.txt','a') as simsa:
+        for num in head:
+            simp.write(num)
+            simp.write(" ")
+        simp.write("\n")
+        for num in Stats:
+            simsa.write(num)
+            simsa.write(" ")
+        simsa.write("\n")
+         
+    
+    
+   
 
-def nameMaker(alpha, n, srf_dwn):
+
+
+    
+
+def nameMaker(n, srf_dwn):
     if srf_dwn == 'Downhole':
         name = 'simulationDWN'+str(n)+'.txt'
     if srf_dwn == 'Surface':
@@ -184,14 +210,14 @@ def Freqy(List, argv, raw_smooth):
 
 def listmaker(argv):
     if argv[3] == 'Downhole':
-        List = glob.glob(str(argv[1])+'*.EW1.FAS')
-        List += glob.glob(str(argv[1])+'*.NS1.FAS')
-        List += glob.glob(str(argv[1])+'*.UD1.FAS')
+        List = sorted(glob.glob(str(argv[1])+'*.EW1.FAS'))
+        List += sorted(glob.glob(str(argv[1])+'*.NS1.FAS'))
+        List += sorted(glob.glob(str(argv[1])+'*.UD1.FAS'))
         print('Picked Borehole Data {0}'.format(List[0]))
     if argv[3] == 'Surface':
-        List = glob.glob(str(argv[1])+'*.EW2.FAS')
-        List += glob.glob(str(argv[1])+'*.NS2.FAS')
-        List += glob.glob(str(argv[1])+'*.UD2.FAS')
+        List = sorted(glob.glob(str(argv[1])+'*.EW2.FAS'))
+        List += sorted(glob.glob(str(argv[1])+'*.NS2.FAS'))
+        List += sorted(glob.glob(str(argv[1])+'*.UD2.FAS'))
         print('Picked Surface Data {0}'.format(List[0]))
     return List
 
@@ -244,7 +270,7 @@ def multiQuakePlot(List, FREQ, argv, on_off):
 
 def smooth_plotter(List, FREQ, binNo, argv, on_off, raw_smooth, max_dist):
     #collect all the data into one vector for scaled and not scaled data
-    out, out_SF = collectDATA(List, FREQ, argv, max_dist, raw_smooth) 
+    out, out_SF = collectDATA(List, FREQ, argv, raw_smooth, max_dist) 
     #bin the data appropriately, include information about the data variance
     stats = binner(out, binNo)
     statsSF = binner(out_SF, binNo)
@@ -394,7 +420,7 @@ def collectDATA(List, FREQ, argv, raw_smooth, max_dist):
 
     dist = dist[np.where(dist<=int(max_dist))]
     dat = dat[np.where(dist<=int(max_dist))]
-    datSF = dat[np.where(dist<=int(max_dist))]
+    datSF = datSF[np.where(dist<=int(max_dist))]
     OUTVEC = np.array([dat, dist])
     OUTVEC_SF = np.array([datSF, dist])
     return OUTVEC, OUTVEC_SF
