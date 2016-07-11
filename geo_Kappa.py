@@ -1,4 +1,4 @@
-from obspy.core import read
+#from obspy.core import read
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.lines as mlines
@@ -33,7 +33,7 @@ import subprocess
 
 
 
-path = "/Volumes/J_Holt_HDD/MRes/Modules/Thesis/Data/"
+path = "/home/sgjholt/tmp/Data/"
 def SimuSearch(simulation_len, path, srf_dwn):
     #open the result files for appending later
     with open(str(srf_dwn)+'_sim_params.txt','a') as simp, open(
@@ -689,6 +689,25 @@ def maxNPTS(st):
         Max = max(npts)
     return Max
 
+def chkfileANDreportback():
+    if len(
+        np.loadtxt(str(srf_dwn)+'_sim_params.txt',skiprows=1)) == simulation_len:
+        subprocess.call(
+        ['python', '/home/sgjholt/seismo/send_email.py', 'Your script is done! ',    'jamesholt92@hotmail.com'])
+    else:
+       subprocess.call(
+        ['python', '/home/sgjholt/seismo/send_email.py', 'Your script failed :( ', 'jamesholt92@hotmail.com'])
+
 #if __name__ == __main__:
     #main()
  
+
+SimuSearch(100, path, 'Downhole')
+chkfileANDreportback()
+    
+    
+
+
+
+
+
