@@ -35,25 +35,69 @@ import subprocess
 
 
 def alphaSearch(simulation_len, path, srf_dwn):
+    """Searches through a model space for alpha and outputs mean stdev of 
+    scatter for each array. """
     List = glob.glob(path+'*.kik')
     alphas = np.linspace(0.3, 2, 200)
     pickals = np.random.randint(199, size=(1,simulation_len))
     argv = ['l','o','l',str(srf_dwn)]
     #switch between quakes
-        for i in range(0, int(len(List))):
-            argv = argvswitcher(argv, List[i])
-            FASlist = listmaker(argv)
-            print('Switched to {0}'.format(argv[1]))    
-            Rs = np.loadtxt(str(argv[2]), skiprows=1)
-            Rs = Rs[:,8] 
-            LoopoverTR(FASlist, Rs, alphas, pickals)
-            statsonbins(simulation_len, ('eq'+i+'.txt')) 
-            subprocess.call('rm *tr*.txt', shell=True)           
+    for i in range(0, int(len(List))):
+        argv = argvswitcher(argv, List[i])
+        FASlist = listmaker(argv)
+        print('Switched to {0}'.format(argv[1]))    
+        Rs = np.loadtxt(str(argv[2]), skiprows=1)
+        Rs = Rs[:,8] 
+        LoopoverTR(FASlist, Rs, alphas, pickals, srf_dwn)
+        statsonbins(simulation_len, ('eq'+str(i)+'_'+str(srf_dwn)+'.txt')) 
+        #delete the tmp tr files for next earthquake 
+        subprocess.call('rm *tr*.txt', shell=True)  
 
+    mergeeqdata(alphas, pickals, srf_dwn)         
+    
+def mergeeqdata(alphas, pickals, srf_dwn): 
+    flist = glob.glob('*eq*.txt')
+    
+    
+    sd1, sd2, sd3, sd4, sd5, sd6, sd7, sd8, sd9, sd10  = (
+    [np.zeros((int(simulation_len+1), int(len(flist)))) for _ in range(20)])
+    # load each eq file and input each sd bin into separate matrices
+    for i in range(0, int(len(flist))):
+        f = np.loadtxt(flist[i])
 
-def LoopoverTR(FASlist, Rs, alphas, pickals):
+        sd1[:,i], sd2[:,i], sd3[:,i],(
+        sd4[:,i]), sd5[:,i], sd6[:,i], sd7[:,i],(
+        sd8[:,i]), sd9[:,i], sd10[:,i]   = [f[:,int(n+10)] for n in range(10)]
+    # take the mean for each std dv bin between earthquakes         
+    sds = np.array(
+    [np.mean(sd1, axis=1), np.mean(sd2, axis=1), np.mean(sd3, axis=1), (
+    np.mean(sd4, axis=1)), np.mean(sd5, axis=1), np.mean(sd6, axis=1), (
+    np.mean(sd7, axis=1)), np.mean(sd8, axis=1), np.mean(sd9, axis=1), (
+    np.mean(sd10, axis=1))])
+    #reshape the file back into column format 
+    sds = np.reshape(pickals.size, 20)
+    #mean between the std of each bin
+    sds = np.mean(sds, axis=1)
+    #create array of alphas again (pre defined)
+    alpha = np.zeros(int(len(pickals)))
+    for n in range(0, int(pickals.size)):
+        alpha[n] = alphas[int(pickals[:,n])]
+    #concat alphas and std dvs into one file - 
+    # ... fist row should be raw data std dv (nothing applied)      
+    finalarray = np.concatenate(
+    (np.reshape(alpha,(pickals.size,1)), sds), axis=1)
+    np.savetxt('alpha_std_'+str(srf_dwn)+'.txt', finalarray)
+
+def LoopoverTR(FASlist, Rs, alphas, pickals, srf_dwn):
+    """This module loops over all of the FAS's (each componant) 
+       and feeds each trace into the geometrical spreading model. 
+       It passes the name of the tmp file which is generated for 
+       each trace. Takes the list of the FAS's , the distances 
+       (in this case Rjb) the full range of alphas and the random
+       integers which will be used as index numbers to pick alphas 
+       at random. """
     for n in range(0, int(len(FASList))):
-        name = 'tr'+str(num)+'.txt'
+        name = 'tr'+str(num)+str(srf_dwn)+'.txt'
         R = Rs[n]
         FAS = np.loadtxt(FASList[n])
         applygeospread(FAS, alphas, pickals, R, name)
@@ -98,6 +142,10 @@ def statsonbins(simulation_len, eqname):
 
 
 def applygeospread(FAS, alphas, pickals, R, name):
+    """This module applies the full range of geometrical spreading models to
+     a single FAS and saves the output to a file which has size 
+     (simulation_len+1 x len(bins). These files are temporary and will be 
+     deleted in a higher function.  """
     freq = FAS[:,0]
     dat = FAS[:,1]
     
@@ -114,6 +162,9 @@ def applygeospread(FAS, alphas, pickals, R, name):
 
 
 def databins(dat, freq):
+    """This function bins the data into 10 frequency bins 2.5 Hz in width.
+       It then returns the mean value of each bin into an array of size
+       (1 x 10). """
     bin1 = np.mean(dat[freq<2.5])
     bin2 = np.mean(dat[(freq>=2.5)&(freq<5)])
     bin3 = np.mean(dat[(freq>=5)&(freq<7.5)])
@@ -798,8 +849,9 @@ def chkfileANDreportback():
 #if __name__ == __main__:
     #main()
  
-
-SimuSearch(100, path, 'Downhole')
+path = "/ssd/sgjholt/tmp/Data/"
+alphaSearch(1000, path, 'Downhole')
+#SimuSearch(100, path, 'Downhole')
 chkfileANDreportback()
     
     
