@@ -30,37 +30,72 @@ import subprocess
 #'/home/james/Dropbox/MRes/Modules/Thesis/poster/FAS.pdf')
 #plt.close()
 
+def PlotSpecs(raw_corr, alpha, path):
+    if raw_corr == 'raw':
+        del alpha
+    List = glob.glob(path+'*.kik')
+    alphas = np.linspace(0.3, 2, simulation_len)
+    argv = ['l','o','l',str(srf_dwn)]
+    #switch between quakes
+    for i in range(0, 1):
+        argv = argvswitcher(argv, List[i])
+        FASlist = listmaker(argv)
+        Rs = np.loadtxt(str(argv[2]), skiprows=1)
+        Rs = Rs[:,8]
+        Min, Max, Mid = minMaxMid(Rs, srf_dwn)
+        
+        
+        tr1 = np.loadtxt(FASlist[Min])
+        tr2 = np.loadtxt(FASlist[Max])
+        tr3 = np.loadtxt(FASlist[Mid])
 
+        tr4 = np.loadtxt(FASlist[Min+int(len(Rs)/6)])
+        tr5 = np.loadtxt(FASlist[Max+int(len(Rs)/6)])
+        tr6 = np.loadtxt(FASlist[Mid+int(len(Rs)/6)])
+        
+        plt.subplot(2,1,1)
+        plt.loglog(tr1[:,0], tr1[:,1])
+        plt.loglog(tr2[:,0], tr2[:,1])
+        plt.loglog(tr3[:,0], tr3[:,1])
+        plt.subplot(2,1,2)     
+        plt.loglog(tr1[:,0], tr1[:,1])
+        plt.loglog(tr2[:,0], tr2[:,1])
+        plt.loglog(tr3[:,0], tr3[:,1])
+    plt.show()
 
-
+def minMaxMid(Rs):
+    minloc = np.where(Rs==min(Rs[0:int(len(Rs)/6)]))
+    maxloc = np.where(Rs==max(Rs[0:int(len(Rs)/6)]))
+    midloc = np.where(Rs==int(max(Rs[0:int(len(Rs)/6)]/2)))
+    return minloc, maxloc, midloc
 
 def alphaSearch(simulation_len, path, srf_dwn):
     """Searches through a model space for alpha and outputs mean stdev of 
     scatter for each array. """
     List = glob.glob(path+'*.kik')
-    alphas = np.linspace(0.3, 2, 200)
-    pickals = np.random.randint(199, size=(1,simulation_len))
+    alphas = np.linspace(0.3, 2, simulation_len)
     argv = ['l','o','l',str(srf_dwn)]
     #switch between quakes
     for i in range(0, int(len(List))):
         argv = argvswitcher(argv, List[i])
         FASlist = listmaker(argv)
-        print('Switched to {0}'.format(argv[1]))    
         Rs = np.loadtxt(str(argv[2]), skiprows=1)
         Rs = Rs[:,8] 
-        LoopoverTR(FASlist, Rs, alphas, pickals, srf_dwn)
+        LoopoverTR(FASlist, Rs, alphas, srf_dwn)
+        print('Performing Stats on Bins')
         statsonbins(simulation_len, ('eq'+str(i)+'_'+str(srf_dwn)+'.txt')) 
-        #delete the tmp tr files for next earthquake 
+        #delete the tmp tr files for next earthquake
+        print('Cleaning temporary files') 
         subprocess.call('rm *tr*.txt', shell=True)  
-
-    mergeeqdata(alphas, pickals, srf_dwn)         
+    print('Merging eq data')
+    mergeEQdata(alphas, srf_dwn, simulation_len)         
     
-def mergeeqdata(alphas, pickals, srf_dwn): 
+def mergeEQdata(alphas, srf_dwn, simulation_len): 
     flist = glob.glob('*eq*.txt')
     
     
     sd1, sd2, sd3, sd4, sd5, sd6, sd7, sd8, sd9, sd10  = (
-    [np.zeros((int(simulation_len+1), int(len(flist)))) for _ in range(20)])
+    [np.zeros((int(simulation_len+1), int(len(flist)))) for _ in range(10)])
     # load each eq file and input each sd bin into separate matrices
     for i in range(0, int(len(flist))):
         f = np.loadtxt(flist[i])
@@ -77,18 +112,18 @@ def mergeeqdata(alphas, pickals, srf_dwn):
     #reshape the file back into column format 
     sds = np.reshape(pickals.size, 20)
     #mean between the std of each bin
+    stdev = np.std(sds, axis=1)
     sds = np.mean(sds, axis=1)
-    #create array of alphas again (pre defined)
-    alpha = np.zeros(int(len(pickals)))
-    for n in range(0, int(pickals.size)):
-        alpha[n] = alphas[int(pickals[:,n])]
+        
+        
     #concat alphas and std dvs into one file - 
     # ... fist row should be raw data std dv (nothing applied)      
     finalarray = np.concatenate(
-    (np.reshape(alpha,(pickals.size,1)), sds), axis=1)
+    (np.reshape(alphas,(alphas.size,1)), sds), axis=1)
+    finalarray = np.concatenate((finalarray, stdev), axis=1)
     np.savetxt('alpha_std_'+str(srf_dwn)+'.txt', finalarray)
 
-def LoopoverTR(FASlist, Rs, alphas, pickals, srf_dwn):
+def LoopoverTR(FASlist, Rs, alphas, srf_dwn):
     """This module loops over all of the FAS's (each componant) 
        and feeds each trace into the geometrical spreading model. 
        It passes the name of the tmp file which is generated for 
@@ -96,11 +131,11 @@ def LoopoverTR(FASlist, Rs, alphas, pickals, srf_dwn):
        (in this case Rjb) the full range of alphas and the random
        integers which will be used as index numbers to pick alphas 
        at random. """
-    for n in range(0, int(len(FASList))):
-        name = 'tr'+str(num)+str(srf_dwn)+'.txt'
+    for n in range(0, int(len(FASlist))):
+        name = 'tr'+str(n)+str(srf_dwn)+'.txt'
         R = Rs[n]
-        FAS = np.loadtxt(FASList[n])
-        applygeospread(FAS, alphas, pickals, R, name)
+        FAS = np.loadtxt(FASlist[n])
+        applygeospread(FAS, alphas, R, name)
         
                 
 def statsonbins(simulation_len, eqname):
@@ -116,7 +151,7 @@ def statsonbins(simulation_len, eqname):
     bin9s = np.zeros((int(simulation_len+1), int(len(flist))))
     bin10s = np.zeros((int(simulation_len+1), int(len(flist))))
     for i in range(0, int(len(flist))):
-        f = np.loadtxt(str(flist[n]))
+        f = np.loadtxt(str(flist[i]))
         bin1s[:,i] = f[:,0] 
         bin2s[:,i] = f[:,1]
         bin3s[:,i] = f[:,2]
@@ -141,7 +176,7 @@ def statsonbins(simulation_len, eqname):
     np.savetxt(str(eqname), means_stds) 
 
 
-def applygeospread(FAS, alphas, pickals, R, name):
+def applygeospread(FAS, alphas, R, name):
     """This module applies the full range of geometrical spreading models to
      a single FAS and saves the output to a file which has size 
      (simulation_len+1 x len(bins). These files are temporary and will be 
@@ -152,8 +187,8 @@ def applygeospread(FAS, alphas, pickals, R, name):
     with open(str(name), 'ab') as f:
         rawbins = databins(np.log(dat), freq)
         np.savetxt(f, np.reshape(rawbins, [1, int(len(rawbins))]))
-        for n in range(0, int(pickals.size)):
-            alpha = alphas[int(pickals[:,n])]
+        for n in range(0, int(alphas.size)):
+            alpha = alphas[n]
             amp = np.log(dat)+(alpha*np.log(R))
             bins = databins(amp, freq)
             np.savetxt(f, np.reshape(bins, [1, int(len(bins))]))
@@ -646,7 +681,7 @@ def freqPicker(st, FREQ, argv, raw_smooth):
         triFAS = geoMean(FASew, FASns, FASud)
         
         if raw_smooth == 'smooth':
-            triFAS == sg.savgol_filter(triFAS, 101, 3)
+            triFAS = sg.savgol_filter(triFAS, 101, 3)
 
         nearest = find_nearest(freq, FREQ)    
         where = np.where(freq == nearest)
@@ -822,37 +857,37 @@ def WindowGrabber(st):
    
     
 
-def getBIG(mat):
-    a = mat
-    b = a
-    a = np.concatenate((a, b), axis=0)
-    a = np.concatenate((a, b), axis=0)
+#def getBIG(mat):
+#    a = mat
+#    b = a
+#    a = np.concatenate((a, b), axis=0)
+#    a = np.concatenate((a, b), axis=0)
     
-    return a
+#    return a
 
-def maxNPTS(st):
-    npts = np.zeros(int(len(st)/6))
-    for i in range(0, int(len(st)/6)):
-        npts[i] = st[i].stats.npts
-        Max = max(npts)
-    return Max
+#def maxNPTS(st):
+#    npts = np.zeros(int(len(st)/6))
+#    for i in range(0, int(len(st)/6)):
+#        npts[i] = st[i].stats.npts
+#        Max = max(npts)
+#    return Max
 
-def chkfileANDreportback():
-    if len(
-        np.loadtxt(str(srf_dwn)+'_sim_params.txt',skiprows=1)) == simulation_len:
-        subprocess.call(
-        ['python', '/home/sgjholt/seismo/send_email.py', 'Your script is done! ',    'jamesholt92@hotmail.com'])
-    else:
-       subprocess.call(
-        ['python', '/home/sgjholt/seismo/send_email.py', 'Your script failed :( ', 'jamesholt92@hotmail.com'])
+#def chkfileANDreportback():
+#    if len(
+#        np.loadtxt(str(srf_dwn)+'_sim_params.txt',skiprows=1)) == simulation_len:
+#        subprocess.call(
+#        ['python', '/home/sgjholt/seismo/send_email.py', 'Your script is done! #',    'jamesholt92@hotmail.com'])
+#    else:
+#       subprocess.call(
+#        ['python', '/home/sgjholt/seismo/send_email.py', 'Your script failed :( ', #'jamesholt92@hotmail.com'])
 
 #if __name__ == __main__:
     #main()
  
 path = "/ssd/sgjholt/tmp/Data/"
-alphaSearch(1000, path, 'Downhole')
+alphaSearch(201, path, 'Downhole')
 #SimuSearch(100, path, 'Downhole')
-chkfileANDreportback()
+#chkfileANDreportback()
     
     
 
