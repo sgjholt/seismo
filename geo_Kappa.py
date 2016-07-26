@@ -33,6 +33,103 @@ import subprocess
 
 
 
+
+def alphaSearch(simulation_len, path, srf_dwn):
+    List = glob.glob(path+'*.kik')
+    alphas = np.linspace(0.3, 2, 200)
+    pickals = np.random.randint(199, size=(1,simulation_len))
+    argv = ['l','o','l',str(srf_dwn)]
+    #switch between quakes
+        for i in range(0, int(len(List))):
+            argv = argvswitcher(argv, List[i])
+            FASlist = listmaker(argv)
+            print('Switched to {0}'.format(argv[1]))    
+            Rs = np.loadtxt(str(argv[2]), skiprows=1)
+            Rs = Rs[:,8] 
+            LoopoverTR(FASlist, Rs, alphas, pickals)
+            statsonbins(simulation_len, ('eq'+i+'.txt')) 
+            subprocess.call('rm *tr*.txt', shell=True)           
+
+
+def LoopoverTR(FASlist, Rs, alphas, pickals):
+    for n in range(0, int(len(FASList))):
+        name = 'tr'+str(num)+'.txt'
+        R = Rs[n]
+        FAS = np.loadtxt(FASList[n])
+        applygeospread(FAS, alphas, pickals, R, name)
+        
+                
+def statsonbins(simulation_len, eqname):
+    flist = glob.glob('*tr*.txt')
+    bin1s = np.zeros((int(simulation_len+1), int(len(flist))))
+    bin2s = np.zeros((int(simulation_len+1), int(len(flist))))
+    bin3s = np.zeros((int(simulation_len+1), int(len(flist))))
+    bin4s = np.zeros((int(simulation_len+1), int(len(flist))))
+    bin5s = np.zeros((int(simulation_len+1), int(len(flist))))
+    bin6s = np.zeros((int(simulation_len+1), int(len(flist))))
+    bin7s = np.zeros((int(simulation_len+1), int(len(flist))))
+    bin8s = np.zeros((int(simulation_len+1), int(len(flist))))
+    bin9s = np.zeros((int(simulation_len+1), int(len(flist))))
+    bin10s = np.zeros((int(simulation_len+1), int(len(flist))))
+    for i in range(0, int(len(flist))):
+        f = np.loadtxt(str(flist[n]))
+        bin1s[:,i] = f[:,0] 
+        bin2s[:,i] = f[:,1]
+        bin3s[:,i] = f[:,2]
+        bin4s[:,i] = f[:,3]
+        bin5s[:,i] = f[:,4]
+        bin6s[:,i] = f[:,5]
+        bin7s[:,i] = f[:,6]
+        bin8s[:,i] = f[:,7]
+        bin9s[:,i] = f[:,8]
+        bin10s[:,i] = f[:,9]
+    array = np.array([bin1s, bin2s, bin3s, bin4s, bin5s, 
+        bin6s, bin7s, bin8s, bin9s, bin10s])
+
+    means = np.zeros((int(simulation_len+1), int(len(array))))
+    stds = np.zeros((int(simulation_len+1), int(len(array))))
+    for n in range(0,int(len(array))):
+        means[:,n] = np.mean(array[n], axis=1)    
+        stds[:,n] = np.std(array[n], axis=1)
+
+    del bin1s, bin2s, bin3s, bin4s, bin5s, bin6s, bin7s, bin8s, bin9s, bin10s
+    means_stds = np.concatenate((means, stds), axis = 1)
+    np.savetxt(str(eqname), means_stds) 
+
+
+def applygeospread(FAS, alphas, pickals, R, name):
+    freq = FAS[:,0]
+    dat = FAS[:,1]
+    
+    with open(str(name), 'ab') as f:
+        rawbins = databins(np.log(dat), freq)
+        np.savetxt(f, np.reshape(rawbins, [1, int(len(rawbins))]))
+        for n in range(0, int(pickals.size)):
+            alpha = alphas[int(pickals[:,n])]
+            amp = np.log(dat)+(alpha*np.log(R))
+            bins = databins(amp, freq)
+            np.savetxt(f, np.reshape(bins, [1, int(len(bins))]))
+
+    
+
+
+def databins(dat, freq):
+    bin1 = np.mean(dat[freq<2.5])
+    bin2 = np.mean(dat[(freq>=2.5)&(freq<5)])
+    bin3 = np.mean(dat[(freq>=5)&(freq<7.5)])
+    bin4 = np.mean(dat[(freq>=7.5)&(freq<10)])
+    bin5 = np.mean(dat[(freq>=10)&(freq<12.5)])
+    bin6 = np.mean(dat[(freq>=12.5)&(freq<15)])
+    bin7 = np.mean(dat[(freq>=15)&(freq<17.5)])
+    bin8 = np.mean(dat[(freq>=17.5)&(freq<20)])
+    bin9 = np.mean(dat[(freq>=20)&(freq<22.5)])
+    bin10 = np.mean(dat[(freq>=22.5)&(freq<=25)])
+    meanbins = np.array(
+        [bin1, bin2, bin3, bin4, bin5, bin6, bin7, bin8, bin9, bin10])
+    return meanbins
+
+
+
 path = "/home/sgjholt/tmp/Data/"
 def SimuSearch(simulation_len, path, srf_dwn):
     #open the result files for appending later
