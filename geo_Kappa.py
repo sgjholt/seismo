@@ -110,7 +110,7 @@ def mergeEQdata(alphas, srf_dwn, simulation_len):
     np.mean(sd7, axis=1)), np.mean(sd8, axis=1), np.mean(sd9, axis=1), (
     np.mean(sd10, axis=1))])
     #reshape the file back into column format 
-    sds = np.reshape(pickals.size, 20)
+    sds = np.reshape(alphas.size, 20)
     #mean between the std of each bin
     stdev = np.std(sds, axis=1)
     sds = np.mean(sds, axis=1)
