@@ -100,9 +100,17 @@ def mergeEQdata(alphas, srf_dwn, simulation_len):
     for i in range(0, int(len(flist))):
         f = np.loadtxt(flist[i])
 
-        sd1[:,i], sd2[:,i], sd3[:,i],(
-        sd4[:,i]), sd5[:,i], sd6[:,i], sd7[:,i],(
-        sd8[:,i]), sd9[:,i], sd10[:,i]   = [f[:,int(n+10)] for n in range(10)]
+        sd1[:,i] = f[:,10]
+        sd2[:,i] = f[:,11]
+        sd3[:,i] = f[:,12]
+        sd4[:,i] = f[:,13]
+        sd5[:,i] = f[:,14]
+        sd6[:,i] = f[:,15]
+        sd7[:,i] = f[:,16]
+        sd8[:,i] = f[:,17]     
+        sd9[:,i] = f[:,18]
+        sd10[:,i] = f[:,19] 
+
     # take the mean for each std dv bin between earthquakes         
     sds = np.array(
     [np.mean(sd1, axis=1), np.mean(sd2, axis=1), np.mean(sd3, axis=1), (
@@ -110,17 +118,24 @@ def mergeEQdata(alphas, srf_dwn, simulation_len):
     np.mean(sd7, axis=1)), np.mean(sd8, axis=1), np.mean(sd9, axis=1), (
     np.mean(sd10, axis=1))])
     #reshape the file back into column format 
-    sds = np.reshape(alphas.size, 20)
+    sdcomp = np.zeros((simulation_len+1, 10))
+    for j in range(0, 10):
+        sdcomp[:,j] = sds[j]
+    
+    del sds
+
     #mean between the std of each bin
-    stdev = np.std(sds, axis=1)
-    sds = np.mean(sds, axis=1)
+    stdev = np.std(sdcomp, axis=1)
+    sds = np.mean(sdcomp, axis=1)
         
         
     #concat alphas and std dvs into one file - 
-    # ... fist row should be raw data std dv (nothing applied)      
+    # ... fist row should be raw data std dv (nothing applied)
+    alphas = np.lib.pad(alphas, (1,0), 'constant', constant_values=(-9999))
     finalarray = np.concatenate(
-    (np.reshape(alphas,(alphas.size,1)), sds), axis=1)
-    finalarray = np.concatenate((finalarray, stdev), axis=1)
+    (alphas.reshape(simulation_len+1, 1), sds.reshape(simulation_len+1, 1)
+    ), axis=1)
+    finalarray = np.concatenate((finalarray, stdev.reshape(simulation_len+1, 1)), axis=1)
     np.savetxt('alpha_std_'+str(srf_dwn)+'.txt', finalarray)
 
 def LoopoverTR(FASlist, Rs, alphas, srf_dwn):
@@ -885,7 +900,7 @@ def WindowGrabber(st):
     #main()
  
 path = "/ssd/sgjholt/tmp/Data/"
-alphaSearch(201, path, 'Downhole')
+#alphaSearch(201, path, 'Downhole')
 #SimuSearch(100, path, 'Downhole')
 #chkfileANDreportback()
     
