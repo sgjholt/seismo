@@ -1,4 +1,4 @@
-#from obspy.core import read
+from obspy.core import read
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.lines as mlines
@@ -30,57 +30,195 @@ import subprocess
 #'/home/james/Dropbox/MRes/Modules/Thesis/poster/FAS.pdf')
 #plt.close()
 
-def PlotSpecs(raw_corr, alpha, path):
+# PlotSpecs('raw', 0, path, 'Downhole', 0, 'on', 'Max')
+
+def PlotSpecs(raw_corr, alpha, path, srf_dwn, i, noise, mmm):
     if raw_corr == 'raw':
         del alpha
     List = glob.glob(path+'*.kik')
-    alphas = np.linspace(0.3, 2, simulation_len)
+   
+
     argv = ['l','o','l',str(srf_dwn)]
     #switch between quakes
-    for i in range(0, 1):
-        argv = argvswitcher(argv, List[i])
-        FASlist = listmaker(argv)
-        Rs = np.loadtxt(str(argv[2]), skiprows=1)
-        Rs = Rs[:,8]
-        Min, Max, Mid = minMaxMid(Rs, srf_dwn)
+   
+    argv = argvswitcher(argv, List[i])
+    FASlist = listmaker(argv)
+    Rs = np.loadtxt(str(argv[2]), skiprows=1)
+    Rs = Rs[:,8]
+    Min, Max, Mid = minMaxMid(Rs)
         
         
-        tr1 = np.loadtxt(FASlist[Min])
-        tr2 = np.loadtxt(FASlist[Max])
-        tr3 = np.loadtxt(FASlist[Mid])
+    tr1 = np.loadtxt(FASlist[Min])
+    tr2 = np.loadtxt(FASlist[Max])
+    tr3 = np.loadtxt(FASlist[Mid])
 
-        tr4 = np.loadtxt(FASlist[Min+int(len(Rs)/6)])
-        tr5 = np.loadtxt(FASlist[Max+int(len(Rs)/6)])
-        tr6 = np.loadtxt(FASlist[Mid+int(len(Rs)/6)])
+    print(FASlist[Min]+''+FASlist[Mid]+''+FASlist[Max])
+
+    tr4 = np.loadtxt(FASlist[Min+int(len(Rs)/6)])
+    tr5 = np.loadtxt(FASlist[Max+int(len(Rs)/6)])
+    tr6 = np.loadtxt(FASlist[Mid+int(len(Rs)/6)])
         
-        plt.subplot(2,1,1)
-        plt.loglog(tr1[:,0], tr1[:,1])
-        plt.loglog(tr2[:,0], tr2[:,1])
-        plt.loglog(tr3[:,0], tr3[:,1])
-        plt.subplot(2,1,2)     
-        plt.loglog(tr1[:,0], tr1[:,1])
-        plt.loglog(tr2[:,0], tr2[:,1])
-        plt.loglog(tr3[:,0], tr3[:,1])
-    plt.show()
+    ax1 = plt.subplot(2,2,1)
+    plt.loglog(tr1[:,0], tr1[:,1],label = (str(Rs[Min]) + 'km'))
+    plt.loglog(tr2[:,0], tr2[:,1],label = (str(Rs[Max]) + 'km'))
+    plt.loglog(tr3[:,0], tr3[:,1],label = (str(Rs[Mid]) + 'km'))
+    plt.legend(loc='lower left')
+    plt.title('EW-Component FAS: '+str(srf_dwn), fontsize=14)
+    plt.ylabel('FAS [m/s]', fontsize=14) 
+    plt.setp(ax1.get_xticklabels(), visible=False)
+
+    
+    ax2 = plt.subplot(2,2,3, sharex = ax1)     
+    Ao4, f4 = transform(tr4[:,1], tr4[:,0], 1.3, 0.81, 69.8, Rs[Min])
+    Ao5, f5 = transform(tr5[:,1], tr5[:,0], 0.6, 0.81, 69.8, Rs[Max])
+    Ao6, f6 = transform(tr6[:,1], tr6[:,0], 0.6, 0.81, 69.8, Rs[Mid])
+    plt.loglog(f4, Ao4,label = (str(Rs[Min]) + 'km'))
+    plt.loglog(f5, Ao5,label = (str(Rs[Max]) + 'km'))
+    plt.loglog(f6, Ao6,label = (str(Rs[Mid]) + 'km'))
+    plt.legend(loc='lower left')
+    plt.title('NS Component FAS - Corrected: '+str(srf_dwn), fontsize=14)
+    plt.ylabel('FAS [m/s]', fontsize=14)
+    plt.xlabel('Frequency [Hz]', fontsize=14)
+    
+    if mmm == 'Min':
+        choose = Min
+        if Rs[choose] <= 70:
+            al = 1.3
+        else:
+            al = 0.85
+        freq = tr1[:,0]
+        amp = tr1[:,1]
+    if mmm == 'Max':
+        choose = Max
+        al = 0.6
+        freq = tr2[:,0]
+        amp = tr2[:,1]
+    if mmm == 'Mid':
+        choose = Mid
+        if Rs[choose] > 100:
+            al = 0.6
+        else:
+            al = 0.85
+        freq = tr3[:,0]
+        amp = tr3[:,1]
+    synF, f = SyntheticFAS(
+    al, 0.81, 69.8, Rs[choose], 25, noise, tr2[:,0], WhatMag(argv))
+    plt.subplot(2,2,(2,4))
+    plt.loglog(f, synF/100, 'r', label = (str(Rs[choose]) + 'km - Synthetic'))
+    plt.loglog(freq, amp, 'b', label = (str(Rs[choose]) + 'km - Real')) 
+    plt.title('Sythetic FAS - Using Emprical Attenuation Laws', fontsize=14)
+    plt.legend(loc='lower left')
+    plt.ylabel('FAS [m/s]', fontsize=14)
+    plt.xlabel('Frequency [Hz]', fontsize=14 )
+    plt.suptitle('Comparison of Traces Before and After Correction (Left) and Synthetic FAS (Right)', fontsize=20)
+    plt.show()    
+
+
+def transform(Af,f, alpha, a, Qo, R):
+    lnAf = np.log(Af)+(alpha*np.log(R))+((np.pi*f*R)/(3.5*Qo*(f**a)))
+    return np.exp(lnAf), f
+
+
+def WhatMag(argv):
+    #grab the first file for that earthquake
+    fname = glob.glob(argv[1]+'*.EW1')
+    fname = fname[0]
+    #strip the magnitude from the file
+    with open(fname, 'r') as f:
+        for line in f:
+            if line.strip()[0] == 'M' and line.strip(
+            )[1] == 'a' and line.strip()[2] == 'g':                    
+                Mag = line.strip()
+    #convert it to a floating pt number
+    Mag = float(Mag[18]+Mag[19]+Mag[20])
+    print(Mag)
+
+    return Mag 
+
+
+
+    
 
 def minMaxMid(Rs):
-    minloc = np.where(Rs==min(Rs[0:int(len(Rs)/6)]))
-    maxloc = np.where(Rs==max(Rs[0:int(len(Rs)/6)]))
-    midloc = np.where(Rs==int(max(Rs[0:int(len(Rs)/6)]/2)))
+    srt = Rs[Rs.argsort()]
+    minloc = np.where(Rs==Rs.min())
+    maxloc = np.where(Rs==Rs.max())
+    midloc = np.where(Rs==srt[int(len(srt)/2)])
+    del srt
+    #investigate why you have to do this to get a regular array
+    minloc = minloc[0]       
+    maxloc = maxloc[0]
+    midloc = midloc[0]
+
+    minloc = minloc[0]       
+    maxloc = maxloc[0]
+    midloc = midloc[0]
+
+    print(
+        'MinD = {0}, MaxD = {1} and MidD = {2}'.format(
+        Rs[minloc], Rs[maxloc], Rs[midloc]))
+        
     return minloc, maxloc, midloc
+
+def BruneSource(sDrop, Mw, f):
+    sv = 3500;
+    Mo = 10**((Mw*1.5)+(6.03*1.5))
+    fo = 0.4906*sv*(sDrop/Mo)**(1/3)
+    C = (0.55*2*0.707) / (4*np.pi*2800*((3500)**3)) 
+
+    Af = ((C)*Mo*(2*np.pi*f)**2)/(1+(f/fo)**2)
+    
+    return Af
+
+
+#def applymodel(Af,f, alpha, a, R, Qo):
+
+#    for n in range(0, int(len(f))):
+#        if f[n] < 1:
+#            Af[n] = np.log(
+#            Af[n])-(alpha*np.log(R))-((np.pi*f[n]*R)/(3.5*Qo))
+#        if f[n] >= 1:
+#            Af[n] = np.log(
+#            Af[n])-(alpha*np.log(R))-((np.pi*f[n]*R)/(3.5*Qo*(f[n]**a)))
+
+    return Af
+
+def SyntheticFAS(alpha, a, Qo, R, maxF, noise, f, mag):
+    
+    Af = BruneSource(10E6, mag, f)
+    
+    Af = Af[f<=maxF] 
+    f = f[f<=maxF]
+    
+    if noise == 'on':
+        Af = np.exp(np.log(Af)+np.random.randn(len(Af)))
+    else:
+        print('No noise added.')
+    #Af = applymodel(Af,f, alpha, a, R, Qo)
+    #Apply geospreading
+    lnAf = np.log(Af)-(alpha*np.log(R))-((np.pi*f*R)/(3.5*Qo*(f**a)))
+        
+    return np.exp(lnAf), f
 
 def alphaSearch(simulation_len, path, srf_dwn):
     """Searches through a model space for alpha and outputs mean stdev of 
     scatter for each array. """
     List = glob.glob(path+'*.kik')
-    alphas = np.linspace(0.3, 2, simulation_len)
+    
+    alphas, simulation_len = gridArray2D(simulation_len)
     argv = ['l','o','l',str(srf_dwn)]
     #switch between quakes
     for i in range(0, int(len(List))):
         argv = argvswitcher(argv, List[i])
         FASlist = listmaker(argv)
         Rs = np.loadtxt(str(argv[2]), skiprows=1)
-        Rs = Rs[:,8] 
+        Rs = Rs[:,8]
+        #limit the distance of traces to 250km
+        Rs = Rs[0:int(len(Rs)/2)]
+        
+        FASlist, Rs = listChopper(Rs, FASlist, 300) 
+        
+         
         LoopoverTR(FASlist, Rs, alphas, srf_dwn)
         print('Performing Stats on Bins')
         statsonbins(simulation_len, ('eq'+str(i)+'_'+str(srf_dwn)+'.txt')) 
@@ -88,7 +226,36 @@ def alphaSearch(simulation_len, path, srf_dwn):
         print('Cleaning temporary files') 
         subprocess.call('rm *tr*.txt', shell=True)  
     print('Merging eq data')
-    mergeEQdata(alphas, srf_dwn, simulation_len)         
+    mergeEQdata(alphas, srf_dwn, simulation_len)
+    
+    
+def listChopper(Rs, FASlist, dist):
+    """Takes the distnace in KM and cuts the list to
+       only include the traces which correspond to the 
+       desired distance range. """
+    newFASlist = []
+    newRs = np.zeros((int(len(Rs[Rs<=dist])),1))
+    j = 0
+    for n in range(0, int(len(Rs))):
+        if Rs[n] <= dist:
+            newRs[j] = Rs[n]
+            newFASlistItem = FASlist[n]
+            newFASlist.append(newFASlistItem)
+            j += 1    
+    return newFASlist, newRs 
+    
+def gridArray2D(simulation_len):
+    """The simulation_len is the amount of elements in each array 
+       to be permutated. The actual simulation length will be 
+       simulation_len^3.  """
+    near = np.linspace(0.1, 1.8, simulation_len)
+    middle = np.linspace(0.1, 1.8, simulation_len)
+    far = np.linspace(0.1, 1.8, simulation_len)       
+    alphas = cartesian((near,middle,far))
+    simulation_len = len(alphas)
+    
+    return alphas, simulation_len
+    
     
 def mergeEQdata(alphas, srf_dwn, simulation_len): 
     flist = glob.glob('*eq*.txt')
@@ -131,9 +298,11 @@ def mergeEQdata(alphas, srf_dwn, simulation_len):
         
     #concat alphas and std dvs into one file - 
     # ... fist row should be raw data std dv (nothing applied)
-    alphas = np.lib.pad(alphas, (1,0), 'constant', constant_values=(-9999))
+    #pad the first row of alphas as -9999 as no shift is applied.
+    bob = np.array([-9999, -9999, -9999]).reshape(1, 3) 
+    alphas = np.concatenate((bob, alphas), axis=0) # 
     finalarray = np.concatenate(
-    (alphas.reshape(simulation_len+1, 1), sds.reshape(simulation_len+1, 1)
+    (alphas.reshape(simulation_len+1, 3), sds.reshape(simulation_len+1, 1)
     ), axis=1)
     finalarray = np.concatenate((finalarray, stdev.reshape(simulation_len+1, 1)), axis=1)
     np.savetxt('alpha_std_'+str(srf_dwn)+'.txt', finalarray)
@@ -202,9 +371,18 @@ def applygeospread(FAS, alphas, R, name):
     with open(str(name), 'ab') as f:
         rawbins = databins(np.log(dat), freq)
         np.savetxt(f, np.reshape(rawbins, [1, int(len(rawbins))]))
-        for n in range(0, int(alphas.size)):
+        for n in range(0, int(len(alphas))):
             alpha = alphas[n]
-            amp = np.log(dat)+(alpha*np.log(R))
+            
+            if R < 70:
+                alpha = alpha[0]
+            elif R >= 70 and R <= 100:
+                alpha = alpha[1]
+            else:
+                alpha = alpha[2] 
+            
+            
+            amp = np.log(dat)+(alpha*np.log(R))+((np.pi*freq*R)/(3.5*69.8*(freq**0.81)))
             bins = databins(amp, freq)
             np.savetxt(f, np.reshape(bins, [1, int(len(bins))]))
 
@@ -355,6 +533,19 @@ def correctSpectrum(FASList, argv, alpha, a, Qo, name):
             np.savetxt(f, np.c_[m, c, r, std], fmt='%10.8f')
 
 
+
+def FASGEN(path):
+    List = glob.glob(path+'*.kik')
+    argv = ['l','o','l','d']
+    #switch between quakes
+    for i in range(0, int(len(List))):
+        argv = argvswitcher(argv, List[i])
+        print(argv)
+        main(argv)
+
+
+
+
 def main(argv):
     print('Loading data stream')
     st = streamBuild(argv[1], argv[2]) #load in data stream
@@ -364,17 +555,17 @@ def main(argv):
     WindowGrabber(st) #grab the s-windows in time domain
     print("Generating FAS.")
     FASmaker(st, argv)
-    num = [0.3, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-    argv[3] = 'Downhole'    
-    for i in range(0, int(len(num))):
+    #num = [0.3, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+    #argv[3] = 'Downhole'    
+    #for i in range(0, int(len(num))):
         
-        freqPicker(st, num[i], argv, 'raw')
-    argv[3] = 'Surface'
-    for i in range(0, int(len(num))):
+    #    freqPicker(st, num[i], argv, 'raw')
+    #argv[3] = 'Surface'
+    #for i in range(0, int(len(num))):
         
-        freqPicker(st, num[i], argv, 'raw')
+    #    freqPicker(st, num[i], argv, 'raw')
 
-    return st
+    #return st
 
 
 
@@ -748,7 +939,7 @@ def calcFAS(st, sdata, i):
     freq = np.fft.rfftfreq(n, st[i].stats.delta) #calculate frequencies 
     wind = np.blackman(n) #blackman window to reduce spectral leaks
     #calculate fas - rfft because real signals have hermitian symmetry.
-    fas = np.abs(np.fft.rfft(sdata*wind)) / (n/2) 
+    fas = np.abs(np.fft.rfft(sdata*wind)) 
     FAS = [freq[3:int(len(freq)-1)], fas[3:int(len(freq)-1)]] 
     return np.transpose(FAS)
 
@@ -870,7 +1061,55 @@ def WindowGrabber(st):
                
         st[n].stats["swindow"] = s_wind*st[n].stats.calib #for real units
    
-    
+def cartesian(arrays, out=None):
+    """
+    Generate a cartesian product of input arrays.
+
+    Parameters
+    ----------
+    arrays : list of array-like
+        1-D arrays to form the cartesian product of.
+    out : ndarray
+        Array to place the cartesian product in.
+
+    Returns
+    -------
+    out : ndarray
+        2-D array of shape (M, len(arrays)) containing cartesian products
+        formed of input arrays.
+
+    Examples
+    --------
+    >>> cartesian(([1, 2, 3], [4, 5], [6, 7]))
+    array([[1, 4, 6],
+           [1, 4, 7],
+           [1, 5, 6],
+           [1, 5, 7],
+           [2, 4, 6],
+           [2, 4, 7],
+           [2, 5, 6],
+           [2, 5, 7],
+           [3, 4, 6],
+           [3, 4, 7],
+           [3, 5, 6],
+           [3, 5, 7]])
+
+    """
+
+    arrays = [np.asarray(x) for x in arrays]
+    dtype = arrays[0].dtype
+
+    n = np.prod([x.size for x in arrays])
+    if out is None:
+        out = np.zeros([n, len(arrays)], dtype=dtype)
+
+    m = n / arrays[0].size
+    out[:,0] = np.repeat(arrays[0], m)
+    if arrays[1:]:
+        cartesian(arrays[1:], out=out[0:m,1:])
+        for j in range(1, arrays[0].size):
+            out[j*m:(j+1)*m,1:] = out[0:m,1:]
+    return out    
 
 #def getBIG(mat):
 #    a = mat
@@ -900,11 +1139,11 @@ def WindowGrabber(st):
     #main()
  
 path = "/ssd/sgjholt/tmp/Data/"
-#alphaSearch(201, path, 'Downhole')
+alphaSearch(21, path, 'Downhole')
 #SimuSearch(100, path, 'Downhole')
 #chkfileANDreportback()
-    
-    
+#FASGEN(path)  
+print('DONE!')    
 
 
 
