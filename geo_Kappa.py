@@ -67,11 +67,13 @@ def PlotSpecs(raw_corr, alpha, path, srf_dwn, i, noise, mmm):
     plt.ylabel('FAS [m/s]', fontsize=14) 
     plt.setp(ax1.get_xticklabels(), visible=False)
 
-    
+   
+
+
     ax2 = plt.subplot(2,2,3, sharex = ax1)     
-    Ao4, f4 = transform(tr4[:,1], tr4[:,0], 1.3, 0.81, 69.8, Rs[Min])
-    Ao5, f5 = transform(tr5[:,1], tr5[:,0], 0.6, 0.81, 69.8, Rs[Max])
-    Ao6, f6 = transform(tr6[:,1], tr6[:,0], 0.6, 0.81, 69.8, Rs[Mid])
+    Ao4, f4 = transform(tr4[:,1], tr4[:,0], 0.8, 0.81, 69.8, Rs[Min])
+    Ao5, f5 = transform(tr5[:,1], tr5[:,0], 0.4, 0.81, 69.8, Rs[Max])
+    Ao6, f6 = transform(tr6[:,1], tr6[:,0], 0.4, 0.81, 69.8, Rs[Mid])
     plt.loglog(f4, Ao4,label = (str(Rs[Min]) + 'km'))
     plt.loglog(f5, Ao5,label = (str(Rs[Max]) + 'km'))
     plt.loglog(f6, Ao6,label = (str(Rs[Mid]) + 'km'))
@@ -80,27 +82,29 @@ def PlotSpecs(raw_corr, alpha, path, srf_dwn, i, noise, mmm):
     plt.ylabel('FAS [m/s]', fontsize=14)
     plt.xlabel('Frequency [Hz]', fontsize=14)
     
+     
     if mmm == 'Min':
         choose = Min
         if Rs[choose] <= 70:
-            al = 1.3
+            al = 0.8
         else:
-            al = 0.85
+            al = 0.6
         freq = tr1[:,0]
         amp = tr1[:,1]
     if mmm == 'Max':
         choose = Max
-        al = 0.6
+        al = 0.4
         freq = tr2[:,0]
         amp = tr2[:,1]
     if mmm == 'Mid':
         choose = Mid
         if Rs[choose] > 100:
-            al = 0.6
+            al = 0.4
         else:
-            al = 0.85
+            al = 0.6
         freq = tr3[:,0]
         amp = tr3[:,1]
+
     synF, f = SyntheticFAS(
     al, 0.81, 69.8, Rs[choose], 25, noise, tr2[:,0], WhatMag(argv))
     plt.subplot(2,2,(2,4))
@@ -213,7 +217,7 @@ def alphaSearch(simulation_len, path, srf_dwn):
         FASlist = listmaker(argv)
         Rs = np.loadtxt(str(argv[2]), skiprows=1)
         Rs = Rs[:,8]
-        #limit the distance of traces to 250km
+        #limit the distance of traces to 300km
         Rs = Rs[0:int(len(Rs)/2)]
         
         FASlist, Rs = listChopper(Rs, FASlist, 300) 
@@ -248,9 +252,9 @@ def gridArray2D(simulation_len):
     """The simulation_len is the amount of elements in each array 
        to be permutated. The actual simulation length will be 
        simulation_len^3.  """
-    near = np.linspace(0.1, 1.8, simulation_len)
-    middle = np.linspace(0.1, 1.8, simulation_len)
-    far = np.linspace(0.1, 1.8, simulation_len)       
+    near = np.linspace(0.1,1.8, simulation_len)
+    middle = np.linspace(0.1,1.8, simulation_len)
+    far = np.linspace(0.1,1.8, simulation_len)       
     alphas = cartesian((near,middle,far))
     simulation_len = len(alphas)
     
@@ -374,15 +378,16 @@ def applygeospread(FAS, alphas, R, name):
         for n in range(0, int(len(alphas))):
             alpha = alphas[n]
             
-            if R < 70:
-                alpha = alpha[0]
-            elif R >= 70 and R <= 100:
-                alpha = alpha[1]
+            if R <= 70:
+                mod = alpha[0]*np.log(R)
+            elif R > 70 and R <= 100:
+                mod = alpha[0]*np.log(70)+(alpha[1]*np.log(R-70))
             else:
-                alpha = alpha[2] 
+                mod = alpha[0]*np.log(70)+(alpha[1]*np.log(30))+(
+                alpha[2]*np.log(R-100)) 
             
             
-            amp = np.log(dat)+(alpha*np.log(R))+((np.pi*freq*R)/(3.5*69.8*(freq**0.81)))
+            amp = np.log(dat)+mod+((np.pi*freq*R)/(3.5*69.8*(freq**0.81)))
             bins = databins(amp, freq)
             np.savetxt(f, np.reshape(bins, [1, int(len(bins))]))
 
@@ -1139,7 +1144,7 @@ def cartesian(arrays, out=None):
     #main()
  
 path = "/ssd/sgjholt/tmp/Data/"
-alphaSearch(21, path, 'Downhole')
+alphaSearch(18, path, 'Downhole')
 #SimuSearch(100, path, 'Downhole')
 #chkfileANDreportback()
 #FASGEN(path)  
