@@ -27,6 +27,7 @@ import multiprocessing
 import pandas as pd
 import contextlib
 from copy import deepcopy
+import datetime
 #---------------------------------core fns-------------------------------------#
 def eventsPicker(All = True, dates=None):
     """eventsPicker will grab the directories for all events in the range 
@@ -97,7 +98,7 @@ def readKiknet(fname, grabsignal=True):
     rdate_time = UTCDateTime(datetime.datetime.strptime(strings[9][-2]+" "+strings[9][-1],'%Y/%m/%d %H:%M:%S'))-60*60*9
 
     #pga
-    pga = strings[14][-1]
+    pga = float(strings[14][-1])
     #sheight (m), eqdepth (km)
     eqdepth, sheight = (float(strings[3][-1]),float(strings[8][-1]))
 
@@ -314,9 +315,10 @@ def event_tables(oneCORE = False, NCORE=None):
     if NCORE > maxCPUs or NCORE is None:
         NCORE = maxCPUs
         print('Not enough cores, setting n_jobs to {0}'.format(maxCPUs))
-    Parallel(n_jobs=int(NCORE))(delayed(useful_metadata)(eventList) for eventList in allEvents)
+    Parallel(n_jobs=int(NCORE))(delayed(useful_metadata)(
+      eventList) for eventList in allEvents)
     if not oneCORE:
-        [useful_metadata(eventList) for eventList in allEvents];
+        [useful_metadata(eventList) for eventList in allEvents]; #
   
 
 def useful_metadata(eventDirs, save=True):
@@ -329,14 +331,16 @@ def useful_metadata(eventDirs, save=True):
     eventDirs_copy = [Dir.replace(".EW1.gz", "") for Dir in eventDirs_copy]
     table = pd.DataFrame(columns = ("site", "jmamag", "pga", "site_lat", "site_lon",
       "station_height", "instrument", "eq_lat", "eq_lon", "eq_depth","Repi", 
-      "Rhypo", "eq_origin_time", "rec_start_time", "path" ))
+      "Rhypo", "o_year", "o_month", "o_day", "o_time","rec_start_time", "eventid","path" ))
     n = 1
     for wf in wfDict:
         table.loc[n] = wf["site"], wf["jmamag"], wf["pga"],wf["sitelatlon"][0], wf[
           "sitelatlon"][1], wf["station height"],wf["instrument"].split(
           ':')[0], wf["eqlatlon"][0],wf["eqlatlon"][1], wf["eqdepth"],calcEpiHypo(
-          wf)[0],calcEpiHypo(wf)[1], wf["origintime"], wf[
-          "recordtime"], eventDirs_copy[n-1]
+          wf)[0],calcEpiHypo(wf)[1], wf["origintime"].year, wf[
+          "origintime"].month, wf["origintime"].day, wf["origintime"].strftime(
+          '%H:%M:%S'), wf["recordtime"], eventDirs_copy[0].split(
+          '/')[-2],eventDirs_copy[n-1]
         n += 1
 
     if save: #should save by default as likely this is what you want
@@ -407,6 +411,6 @@ def silent_remove(filename):
     with contextlib.suppress(FileNotFoundError):
         os.remove(filename)
 #---------------------------------run cmds-------------------------------------#
-
-
+if __name__ = '__main__'
+    event_tables(NCORE=4)
 
