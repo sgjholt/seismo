@@ -410,7 +410,114 @@ def silent_remove(filename):
     """
     with contextlib.suppress(FileNotFoundError):
         os.remove(filename)
+
+def all_metadata():
+
+    allMeta = pd.concat([pd.read_csv(event+'/'+event.split(
+      '/')[-1]+'_db.csv', index_col=0) for event in allEvents if os.path.isfile(
+      event+'/'+event.split('/')[-1]+'_db.csv')], axis = 0)
+
+    vs_table = pd.read_csv(
+      '/data/share/Japan/SiteInfo/vs_infotable.csv',index_col=0)
+
+    ALL = pd.merge(allMeta, vs_table ,on='site',how='left')
+
+    ALL.to_csv('/data/share/Japan/Kik_catalogue.csv')
+
+
+def interp_smooth(path, singlecomp=False, ext=None, maxF=25, dt = 1/100):
+    """
+        
+    """
+    if not singlecomp: # take geometric mean of everything
+        exts = [".EW2.gz", ".NS2.gz", ".EW1.gz", ".NS1.gz"]
+        wfms = [readKiknet(path+f) for f in exts]
+        [calcFAS(wf) for wf in wfms];
+        s_b = (wfms[0]['FAS'] * wfms[1]['FAS'])**0.5 / (
+          wfms[2]['FAS'] * wfms[3]['FAS'])**0.5
+    else: #calc for only the specified component
+        exts = [ext+"2.gz", ext+"1.gz"]
+        wfms = [readKiknet(path+f) for f in exts]
+        [calcFAS(wf) for wf in wfms];
+        s_b = wfms[0]['FAS']/wfms[1]['FAS']
+    
+    freqs = np.linspace(0+dt, maxF+dt, maxF/dt)[9:] #start counting from 0.1Hz
+
+    s_b = np.interp(freqs, wfms[0]['FASfreqs'], s_b)
+
+    s_b = konno_ohmachi_smoothing(s_b, freqs, normalize=True)
+
+    return (s_b, freqs)
+
+def calc_sb(site, singlecomp=False, ext=None, maxF=25, dt=1/100):
+
+    subset = pd.read_csv('/data/share/Japan/Kik_catalogue.csv').query(
+      "site == \'{0}\' & instrument == 'Borehole'".format(str(site)))
+    paths = subset.path.values
+    data, freqs = interp_smooth(paths[0])
+    cols = freqs
+    master_table = pd.DataFrame(data.reshape(1,len(data)), columns = cols)           
+    master_table = master_table.append(pd.concat([pd.DataFrame(interp_smooth(
+      path)[0].reshape(1,len(
+      data)), columns = cols) for path in paths[
+      1:]], axis=0, ignore_index=True), ignore_index=True)
+
+    return master_table
+
+#def smooth_interp(path, singlecomp=False, ext=None, maxF=25, dt = 1/100):
+#    """
+#        
+#    """
+#    if not singlecomp: # take geometric mean of everything
+#        exts = [".EW2.gz", ".NS2.gz", ".EW1.gz", ".NS1.gz"]
+#        wfms = [readKiknet(path+f) for f in exts]
+#        [calcFAS(wf) for wf in wfms];
+#        s_b = (wfms[0]['FAS'] * wfms[1]['FAS'])**0.5 / (
+#          wfms[2]['FAS'] * wfms[3]['FAS'])**0.5
+#    else: #calc for only the specified component
+#        exts = [ext+"2.gz", ext+"1.gz"]
+#        wfms = [readKiknet(path+f) for f in exts]
+#        [calcFAS(wf) for wf in wfms];
+#        s_b = wfms[0]['FAS']/wfms[1]['FAS']
+#    
+#    freqs = np.linspace(0+dt, maxF, maxF/dt)
+#    s_b = konno_ohmachi_smoothing(s_b, wfms[0]['FASfreqs'], normalize=True)
+#    s_b = np.interp(freqs, wfms[0]['FASfreqs'], s_b)
+#    return (s_b, freqs)
+
+
+#def testing():
+#
+#    paths = subset.path.values[0:6]
+#    events = subset.eventid.values[0:6]
+#
+#    fig, ((ax1,ax2),(ax3,ax4), (ax5,ax6)) = plt.subplots(
+#    3,2,sharex=True,sharey=True)
+#    fig.set_figheight(18)
+#    fig.set_figwidth(11)
+#    axes = [ax1,ax2,ax3,ax4,ax5,ax6]
+#
+#    s_bs = Parallel(n_jobs=4)(delayed(interp_smooth)(path) for path in paths)
+#    S_BS = Parallel(n_jobs=4)(delayed(smooth_interp)(path) for path in paths)
+#    n = 0
+#    for ax in axes:
+#        ax.loglog(S_BS[n][1], S_BS[n][0], 'b',linewidth=5,label = 'smooth -> interp')
+#        ax.loglog(s_bs[n][1], s_bs[n][0], 'r--',label = 'interp -> smooth')
+#        ax.set_title(str(events[n]), fontsize=15)     
+#        ax.legend(loc='best', fancybox=True, framealpha=0.5)
+#        ax.grid(True)
+#        n+=1
+#    ax1.set_ylabel('S/B Ratio')
+#    ax3.set_ylabel('S/B Ratio')
+#    ax5.set_ylabel('S/B Ratio')
+#    ax5.set_xlabel('Frequency [Hz]')
+#    ax6.set_xlabel('Frequency [Hz]')
+#    fig.suptitle('Comparison of S/B ratio:\n Smooth->Interp or Interp->Smooth', fontsize=20)    
+
+    
+
+
 #---------------------------------run cmds-------------------------------------#
-if __name__ = '__main__'
+if __name__ == '__main__':
     event_tables(NCORE=4)
 
